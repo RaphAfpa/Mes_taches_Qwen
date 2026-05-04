@@ -1,0 +1,26 @@
+Arborescence du projet
+App Nocode par Gemini avec BDD/
+├── .htaccess
+├── raphphpinfo.php
+├── api/
+│   ├── .htaccess
+│   ├── index.php
+│   ├── php.ini
+│   ├── controllers/
+│   │   ├── TaskController.php
+│   │   └── UserController.php
+│   ├── core/
+│   │   └── router.php
+│   └── models/
+│       ├── Database.php
+│       ├── Task.php
+│       └── User.php
+├── creationtache.html
+├── css/
+│   └── style.css
+├── index.html
+├── js/
+│   ├── app.js
+│   └── auth.js
+├── profil.html
+└── taches.html

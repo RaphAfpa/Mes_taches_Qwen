@@ -1,0 +1,10 @@
+# api/.htaccess
+RewriteEngine On
+RewriteBase /api/
+
+# Exclure les fichiers et répertoires existants de la réécriture
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Réécrire toutes les requêtes vers index.php (dans le dossier api/)
+RewriteRule ^(.*)$ index.php [QSA,L]

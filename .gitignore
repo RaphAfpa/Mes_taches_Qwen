@@ -1,0 +1,13 @@
+# Système
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Dépendances éventuelles
+node_modules/
+
+# Fichiers temporaires
+.env
+.cache/
