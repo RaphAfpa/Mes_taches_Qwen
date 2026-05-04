@@ -2,262 +2,245 @@
 // api/controllers/UserController.php
 
 /**
- * Classe UserController
+ * Contrôleur responsable des fonctionnalités liées aux utilisateurs.
  *
- * Gère les requêtes API relatives à l'authentification des utilisateurs et à la gestion de leur profil.
- * Ce contrôleur agit comme un intermédiaire entre le routeur et le modèle `User`,
- * traitant les données de la requête, appelant les méthodes appropriées du modèle
- * et formatant les réponses JSON.
+ * Rôle dans l’architecture :
+ * - Reçoit les requêtes HTTP (via le routeur)
+ * - Vérifie l’authentification via la session
+ * - Ordonne les appels au modèle User
+ * - Retourne des réponses JSON standardisées
  *
- * Rôle : Orchestrer les opérations d'authentification (connexion, inscription, déconnexion)
- * et de gestion de profil (affichage, mise à jour, suppression de compte) en réponse aux requêtes HTTP,
- * en assurant la sécurité et la gestion des sessions.
- *
- * Pourquoi préférable :
- * - Sépare la logique de gestion des requêtes (contrôleur) de la logique d'accès aux données (modèle).
- * - Centralise la validation des entrées et la gestion des réponses HTTP pour les opérations utilisateur.
- * - Intègre la logique d'authentification et de session pour sécuriser l'accès aux fonctionnalités.
- * - Utilise des codes de statut HTTP appropriés pour chaque type de réponse (succès, erreur, non autorisé).
+ * Ce contrôleur ne contient PAS :
+ * - de logique SQL
+ * - de logique de routage
+ * - de logique d’affichage HTML
  */
-class UserController {
-    private $user; // Instance du modèle User
+class UserController
+{
+    /**
+     * Instance du modèle User.
+     *
+     * Le contrôleur manipule le modèle pour accéder aux données,
+     * mais ne connaît jamais les détails SQL.
+     */
+    private User $user;
 
     /**
-     * Constructeur de la classe UserController.
+     * Le contrôleur reçoit la connexion PDO depuis l’extérieur
+     * (injectée par index.php).
      *
-     * @param PDO $db L'objet de connexion à la base de données (PDO).
-     * Rôle : Initialiser le contrôleur avec une instance du modèle User,
-     * lui permettant d'interagir avec la base de données via ce modèle.
-     * Pourquoi préférable : Utilise l'injection de dépendances pour le modèle User,
-     * ce qui rend le contrôleur plus flexible et testable.
+     * Intérêt pédagogique :
+     * - évite les dépendances cachées
+     * - facilite les tests
+     * - respecte l’injection de dépendances sans framework
      */
-    public function __construct($db) {
+    public function __construct(PDO $db)
+    {
         $this->user = new User($db);
     }
 
     /**
-     * Gère la requête POST pour la connexion de l'utilisateur.
+     * Méthode centrale de réponse JSON standardisée.
      *
-     * Récupère le nom d'utilisateur et le mot de passe du corps de la requête JSON,
-     * vérifie les identifiants et établit une session utilisateur en cas de succès.
+     * Objectif :
+     * - garantir une structure de réponse identique pour toute l’API
+     * - éviter la duplication de `http_response_code` et `json_encode`
      *
-     * Rôle : Authentifier un utilisateur et démarrer une session.
-     * Pourquoi préférable :
-     * - Valide la présence des données de connexion.
-     * - Utilise le modèle `User` pour vérifier les identifiants de manière sécurisée
-     *   (recherche par nom d'utilisateur, vérification du mot de passe haché).
-     * - Gère la session utilisateur (`$_SESSION`) pour maintenir l'état de connexion.
-     * - Retourne des codes de statut HTTP appropriés (200 OK, 400 Bad Request, 401 Unauthorized).
-     * - **Amélioration future :** Pour une sécurité accrue, il serait préférable d'appeler
-     *   `session_regenerate_id(true);` après une connexion réussie pour prévenir la fixation de session.
+     * Structure retournée :
+     * {
+     *   success: bool,
+     *   data: mixed|null,
+     *   message: string|null,
+     *   errors: mixed|null
+     * }
+     *
+     * `exit` est volontaire :
+     * une fois la réponse envoyée, on stoppe toute exécution.
      */
-    public function login() {
-        session_start(); // Démarre ou reprend la session
-        $data = json_decode(file_get_contents("php://input")); // Récupère les données JSON de la requête
+    private function sendResponse(
+        bool $success,
+        $data = null,
+        ?string $message = null,
+        $errors = null,
+        int $statusCode = 200
+    ): void {
+        header('Content-Type: application/json');
+        http_response_code($statusCode);
 
-        // Vérifie si le nom d'utilisateur et le mot de passe sont fournis
-        if (!empty($data->username) && !empty($data->password)) {
-            $this->user->username = $data->username;
+        echo json_encode([
+            'success' => $success,
+            'data'    => $data,
+            'message' => $message,
+            'errors'  => $errors
+        ]);
 
-            // Tente de trouver l'utilisateur par nom d'utilisateur
-            if ($this->user->findByUsername()) {
-                // Vérifie le mot de passe fourni avec le mot de passe haché stocké
-                if ($this->user->passwordVerify($data->password, $this->user->password)) {
-                    $_SESSION['user_id'] = $this->user->id; // Stocke l'ID utilisateur en session
-                    $_SESSION['username'] = $this->user->username; // Stocke le nom d'utilisateur en session
-                    http_response_code(200); // OK
-                    echo json_encode(array("message" => "Connexion réussie.", "user_id" => $this->user->id, "username" => $this->user->username));
-                } else {
-                    http_response_code(401); // Non autorisé
-                    echo json_encode(array("message" => "Login ou mot de passe incorrect."));
-                }
-            } else {
-                http_response_code(401); // Non autorisé
-                echo json_encode(array("message" => "Login ou mot de passe incorrect."));
-            }
-        } else {
-            http_response_code(400); // Mauvaise requête
-            echo json_encode(array("message" => "Données incomplètes."));
-        }
+        exit;
     }
 
     /**
-     * Gère la requête POST pour l'inscription d'un nouvel utilisateur.
+     * Connexion utilisateur (POST /login)
      *
-     * Récupère le nom d'utilisateur, l'email et le mot de passe du corps de la requête JSON,
-     * et tente de créer un nouvel utilisateur via le modèle.
-     *
-     * Rôle : Permettre aux nouveaux utilisateurs de s'inscrire.
-     * Pourquoi préférable :
-     * - Valide la présence des données d'inscription requises.
-     * - Utilise le modèle `User` pour gérer la création de l'utilisateur, y compris
-     *   la vérification des doublons et le hachage sécurisé du mot de passe.
-     * - Retourne des codes de statut HTTP appropriés (201 Created, 400 Bad Request).
+     * Étapes :
+     * 1. Ouverture de la session
+     * 2. Lecture du JSON reçu
+     * 3. Vérification des champs obligatoires
+     * 4. Recherche utilisateur
+     * 5. Vérification du mot de passe
+     * 6. Initialisation de la session
+     * 7. Réponse JSON
      */
-    public function register() {
-        $data = json_decode(file_get_contents("php://input")); // Récupère les données JSON de la requête
+    public function login(): void
+    {
+        session_start();
 
-        // Vérifie si toutes les données requises sont fournies
-        if (!empty($data->username) && !empty($data->email) && !empty($data->password)) {
-            $this->user->username = $data->username;
-            $this->user->email = $data->email;
+        // Lecture du corps JSON brut de la requête
+        $data = json_decode(file_get_contents('php://input'));
+
+        // Validation minimale des entrées
+        if (empty($data->username) || empty($data->password)) {
+            $this->sendResponse(false, null, 'Données incomplètes.', null, 400);
+        }
+
+        // Le contrôleur prépare le modèle
+        $this->user->username = $data->username;
+
+        // Le modèle gère la recherche ET fournit le mot de passe haché
+        if (
+            !$this->user->findByUsername() ||
+            !$this->user->passwordVerify($data->password, $this->user->password)
+        ) {
+            // Message volontairement vague (bonne pratique sécurité)
+            $this->sendResponse(false, null, 'Identifiants invalides.', null, 401);
+        }
+
+        // Initialisation explicite de la session utilisateur
+        $_SESSION['user_id']  = $this->user->id;
+        $_SESSION['username'] = $this->user->username;
+
+        // Réponse en cas de succès
+        $this->sendResponse(
+            true,
+            [
+                'id'       => $this->user->id,
+                'username' => $this->user->username
+            ],
+            'Connexion réussie.'
+        );
+    }
+
+    /**
+     * Inscription d’un nouvel utilisateur (POST /register)
+     */
+    public function register(): void
+    {
+        $data = json_decode(file_get_contents('php://input'));
+
+        if (
+            empty($data->username) ||
+            empty($data->email) ||
+            empty($data->password)
+        ) {
+            $this->sendResponse(false, null, 'Données incomplètes.', null, 400);
+        }
+
+        // Hydratation du modèle
+        $this->user->username = $data->username;
+        $this->user->email    = $data->email;
+        $this->user->password = $data->password;
+
+        // Le modèle gère :
+        // - les doublons
+        // - le hachage du mot de passe
+        if (!$this->user->create()) {
+            $this->sendResponse(false, null, 'Utilisateur déjà existant.', null, 400);
+        }
+
+        // 201 = ressource créée
+        $this->sendResponse(true, null, 'Compte créé avec succès.', null, 201);
+    }
+
+    /**
+     * Récupération du profil utilisateur connecté (GET /profile)
+     */
+    public function getProfile(): void
+    {
+        session_start();
+
+        // Vérification d’authentification
+        if (!isset($_SESSION['user_id'])) {
+            $this->sendResponse(false, null, 'Non autorisé.', null, 401);
+        }
+
+        $this->user->id = $_SESSION['user_id'];
+
+        if (!$this->user->findById()) {
+            $this->sendResponse(false, null, 'Utilisateur non trouvé.', null, 404);
+        }
+
+        // Les données retournées sont volontairement limitées
+        $this->sendResponse(true, [
+            'id'       => $this->user->id,
+            'username' => $this->user->username,
+            'email'    => $this->user->email
+        ]);
+    }
+
+    /**
+     * Mise à jour du profil utilisateur (PUT /profile)
+     */
+    public function updateProfile(): void
+    {
+        session_start();
+
+        if (!isset($_SESSION['user_id'])) {
+            $this->sendResponse(false, null, 'Non autorisé.', null, 401);
+        }
+
+        $data = json_decode(file_get_contents('php://input'));
+
+        if (empty($data->username) || empty($data->email)) {
+            $this->sendResponse(false, null, 'Données incomplètes.', null, 400);
+        }
+
+        $this->user->id       = $_SESSION['user_id'];
+        $this->user->username = $data->username;
+        $this->user->email    = $data->email;
+
+        // Le mot de passe est optionnel
+        if (!empty($data->password)) {
             $this->user->password = $data->password;
-
-            // Tente de créer l'utilisateur via le modèle
-            if ($this->user->create()) {
-                http_response_code(201); // Créé
-                echo json_encode(array("message" => "Compte créé avec succès."));
-            } else {
-                http_response_code(400); // Mauvaise requête (ex: nom d'utilisateur/email déjà existant)
-                echo json_encode(array("message" => "Impossible de créer le compte. Le nom d'utilisateur ou l'email existe déjà."));
-            }
-        } else {
-            http_response_code(400); // Mauvaise requête
-            echo json_encode(array("message" => "Données incomplètes."));
         }
+
+        if (!$this->user->update()) {
+            $this->sendResponse(false, null, 'Échec de la mise à jour.', null, 503);
+        }
+
+        // Synchronisation de la session
+        $_SESSION['username'] = $this->user->username;
+
+        $this->sendResponse(true, null, 'Profil mis à jour.');
     }
 
     /**
-     * Gère la requête GET pour la déconnexion de l'utilisateur.
-     *
-     * Détruit la session utilisateur, mettant fin à la connexion.
-     *
-     * Rôle : Déconnecter un utilisateur.
-     * Pourquoi préférable :
-     * - Utilise les fonctions PHP standard `session_unset()` et `session_destroy()`
-     *   pour nettoyer et terminer correctement la session, assurant que les données
-     *   de session de l'utilisateur ne sont plus valides.
-     * - Retourne un code de statut HTTP 200 OK.
+     * Suppression du compte utilisateur (DELETE /profile)
      */
-    public function logout() {
-        session_start(); // Démarre ou reprend la session
-        session_unset(); // Supprime toutes les variables de session
-        session_destroy(); // Détruit la session
-        http_response_code(200); // OK
-        echo json_encode(array("message" => "Déconnexion réussie."));
-    }
+    public function deleteAccount(): void
+    {
+        session_start();
 
-    /**
-     * Gère la requête GET pour récupérer le profil de l'utilisateur authentifié.
-     *
-     * Récupère l'ID utilisateur de la session et utilise le modèle pour trouver
-     * et retourner les informations du profil.
-     *
-     * Rôle : Fournir les informations du profil de l'utilisateur connecté.
-     * Pourquoi préférable :
-     * - Vérifie l'authentification de l'utilisateur via la session.
-     * - Utilise le modèle `User` pour récupérer les données du profil de manière sécurisée.
-     * - Retourne des codes de statut HTTP appropriés (200 OK, 401 Unauthorized, 404 Not Found).
-     */
-    public function getProfile() {
-        session_start(); // Démarre ou reprend la session
-        // Vérifie si l'utilisateur est connecté
-        if (isset($_SESSION['user_id'])) {
-            $this->user->id = $_SESSION['user_id'];
-            // Tente de trouver l'utilisateur par ID
-            if ($this->user->findById()) {
-                http_response_code(200); // OK
-                echo json_encode(array(
-                    "id" => $this->user->id,
-                    "username" => $this->user->username,
-                    "email" => $this->user->email
-                ));
-            } else {
-                http_response_code(404); // Non trouvé
-                echo json_encode(array("message" => "Utilisateur non trouvé."));
-            }
-        }
-        else {
-            http_response_code(401); // Non autorisé
-            echo json_encode(array("message" => "Non autorisé. Veuillez vous connecter."));
-        }
-    }
-
-    /**
-     * Gère la requête PUT pour mettre à jour le profil de l'utilisateur authentifié.
-     *
-     * Récupère les données du profil (nom d'utilisateur, email, et optionnellement mot de passe)
-     * du corps de la requête JSON et tente de mettre à jour le profil via le modèle.
-     *
-     * Rôle : Permettre aux utilisateurs de modifier leurs informations de profil.
-     * Pourquoi préférable :
-     * - Vérifie l'authentification de l'utilisateur.
-     * - Valide la présence des données requises pour la mise à jour.
-     * - Permet la mise à jour conditionnelle du mot de passe (s'il est fourni, il est haché).
-     * - Utilise le modèle `User` pour gérer la mise à jour de manière sécurisée.
-     * - Retourne des codes de statut HTTP appropriés (200 OK, 400 Bad Request, 401 Unauthorized, 503 Service Unavailable).
-     */
-    public function updateProfile() {
-        session_start(); // Démarre ou reprend la session
-        // Vérifie si l'utilisateur est connecté
         if (!isset($_SESSION['user_id'])) {
-            http_response_code(401); // Non autorisé
-            echo json_encode(array("message" => "Non autorisé. Veuillez vous connecter."));
-            return;
+            $this->sendResponse(false, null, 'Non autorisé.', null, 401);
         }
 
-        $data = json_decode(file_get_contents("php://input")); // Récupère les données JSON de la requête
+        $this->user->id = $_SESSION['user_id'];
 
-        // Vérifie si le nom d'utilisateur et l'email sont fournis
-        if (!empty($data->username) && !empty($data->email)) {
-            $this->user->id = $_SESSION['user_id']; // Assure que seul l'utilisateur connecté peut modifier son profil
-            $this->user->username = $data->username;
-            $this->user->email = $data->email;
-
-            // Met à jour le mot de passe uniquement s'il est fourni dans la requête
-            if (!empty($data->password)) {
-                $this->user->password = $data->password;
-            }
-
-            // Tente de mettre à jour le profil via le modèle
-            if ($this->user->update()) {
-                $_SESSION['username'] = $this->user->username; // Met à jour le nom d'utilisateur en session si modifié
-                http_response_code(200); // OK
-                echo json_encode(array("message" => "Profil mis à jour avec succès."));
-            } else {
-                http_response_code(503); // Service indisponible
-                echo json_encode(array("message" => "Impossible de mettre à jour le profil."));
-            }
-        } else {
-            http_response_code(400); // Mauvaise requête
-            echo json_encode(array("message" => "Données incomplètes."));
-        }
-    }
-
-    /**
-     * Gère la requête DELETE pour supprimer le compte de l'utilisateur authentifié.
-     *
-     * Récupère l'ID utilisateur de la session et tente de supprimer le compte via le modèle.
-     * Détruit la session après la suppression réussie du compte.
-     *
-     * Rôle : Permettre aux utilisateurs de supprimer leur propre compte.
-     * Pourquoi préférable :
-     * - Vérifie l'authentification de l'utilisateur.
-     * - Utilise le modèle `User` pour gérer la suppression du compte de manière sécurisée.
-     * - Détruit la session après la suppression du compte pour s'assurer que l'utilisateur est déconnecté.
-     * - Retourne des codes de statut HTTP appropriés (200 OK, 401 Unauthorized, 503 Service Unavailable).
-     */
-    public function deleteAccount() {
-        session_start(); // Démarre ou reprend la session
-        // Vérifie si l'utilisateur est connecté
-        if (!isset($_SESSION['user_id'])) {
-            http_response_code(401); // Non autorisé
-            echo json_encode(array("message" => "Non autorisé. Veuillez vous connecter."));
-            return;
+        if (!$this->user->delete()) {
+            $this->sendResponse(false, null, 'Échec de la suppression.', null, 503);
         }
 
-        $this->user->id = $_SESSION['user_id']; // Assure que seul l'utilisateur connecté peut supprimer son compte
+        // Destruction explicite de la session
+        session_destroy();
 
-        // Tente de supprimer le compte via le modèle
-        if ($this->user->delete()) {
-            session_unset(); // Supprime toutes les variables de session
-            session_destroy(); // Détruit la session
-            http_response_code(200); // OK
-            echo json_encode(array("message" => "Compte supprimé avec succès."));
-        } else {
-            http_response_code(503); // Service indisponible
-            echo json_encode(array("message" => "Impossible de supprimer le compte."));
-        }
+        $this->sendResponse(true, null, 'Compte supprimé.');
     }
 }
-?>
