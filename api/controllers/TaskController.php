@@ -52,7 +52,7 @@ class TaskController {
         // Vérifie si l'utilisateur est connecté
         if (!isset($_SESSION['user_id'])) {
             http_response_code(401); // Non autorisé
-            echo json_encode(array("message" => "Non autorisé. Veuillez vous connecter."));
+            echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer."));
             return;
         }
 
@@ -99,7 +99,7 @@ class TaskController {
             // Retourne 200 OK avec un tableau vide et un message lorsque aucune tâche n'est trouvée.
             // C'est une meilleure pratique pour les API que de retourner un 404 pour une requête valide sans résultat.
             http_response_code(200); // OK
-            echo json_encode(array("message" => "Aucune tâche trouvée.", "tasks" => []));
+            echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer.", "tasks" => []));
         }
     }
 
@@ -123,7 +123,7 @@ class TaskController {
         // Vérifie si l'utilisateur est connecté
         if (!isset($_SESSION['user_id'])) {
             http_response_code(401); // Non autorisé
-            echo json_encode(array("message" => "Non autorisé. Veuillez vous connecter."));
+            echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer."));
             return;
         }
 
@@ -147,11 +147,11 @@ class TaskController {
                 echo json_encode(array("message" => "Tâche créée avec succès."));
             } else {
                 http_response_code(503); // Service indisponible (erreur serveur)
-                echo json_encode(array("message" => "Impossible de créer la tâche."));
+                echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer."));
             }
         } else {
             http_response_code(400); // Mauvaise requête
-            echo json_encode(array("message" => "Nom de tâche manquant."));
+            echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer."));
         }
     }
 
@@ -175,7 +175,7 @@ class TaskController {
         // Vérifie si l'utilisateur est connecté
         if (!isset($_SESSION['user_id'])) {
             http_response_code(401); // Non autorisé
-            echo json_encode(array("message" => "Non autorisé. Veuillez vous connecter."));
+            echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer."));
             return;
         }
 
@@ -183,7 +183,7 @@ class TaskController {
         // Vérifie les erreurs de parsing JSON
         if (json_last_error() !== JSON_ERROR_NONE) {
             http_response_code(400); // Mauvaise requête
-            echo json_encode(array("message" => "Erreur de parsing JSON."));
+            echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer."));
             return;
         }
 
@@ -211,13 +211,13 @@ class TaskController {
                 http_response_code(200); // OK
                 echo json_encode($response);
             } else {
-                $response = array("message" => "Impossible de mettre à jour la tâche. Assurez-vous que la tâche existe et vous appartient.");
+                $response = array("message" => "Une erreur s'est produite. Veuillez réessayer.");
                 http_response_code(503); // Service indisponible
                 echo json_encode($response);
             }
         } else {
             http_response_code(400); // Mauvaise requête
-            echo json_encode(array("message" => "Données incomplètes (ID ou nom de tâche manquant)."));
+            echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer."));
         }
     }
 
@@ -238,7 +238,7 @@ class TaskController {
         // Vérifie si l'utilisateur est connecté
         if (!isset($_SESSION['user_id'])) {
             http_response_code(401); // Non autorisé
-            echo json_encode(array("message" => "Non autorisé. Veuillez vous connecter."));
+            echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer."));
             return;
         }
 
@@ -256,11 +256,11 @@ class TaskController {
                 echo json_encode(array("message" => "Tâche supprimée avec succès."));
             } else {
                 http_response_code(503); // Service indisponible
-                echo json_encode(array("message" => "Impossible de supprimer la tâche. Assurez-vous que la tâche existe et vous appartient."));
+                echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer."));
             }
         } else {
             http_response_code(400); // Mauvaise requête
-            echo json_encode(array("message" => "ID de tâche manquant."));
+            echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer."));
         }
     }
 }
