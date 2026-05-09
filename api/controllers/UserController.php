@@ -101,31 +101,39 @@ class UserController
             $this->sendResponse(false, null, 'Données incomplètes.', null, 400);
         }
 
-        // Le contrôleur prépare le modèle
-        $this->user->username = $data->username;
+        // Utilisation de requêtes préparées pour éviter les injections SQL
+        $query = 'SELECT id, username, password FROM users WHERE username = :username LIMIT 1';
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':username', $data->username);
+        $stmt->execute();
 
-        // Le modèle gère la recherche ET fournit le mot de passe haché
-        if (
-            !$this->user->findByUsername() ||
-            !$this->user->passwordVerify($data->password, $this->user->password)
-        ) {
-            // Message volontairement vague (bonne pratique sécurité)
+        if ($stmt->rowCount() > 0) {
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Vérification du mot de passe
+            if (!password_verify($data->password, $row['password'])) {
+                $this->sendResponse(false, null, 'Identifiants invalides.', null, 401);
+            }
+
+            // Initialisation explicite de la session utilisateur
+            $_SESSION['user_id']  = $row['id'];
+            $_SESSION['username'] = $row['username'];
+
+            // Régénération de l'ID de session pour prévenir la fixation de session
+            session_regenerate_id(true);
+
+            // Réponse en cas de succès
+            $this->sendResponse(
+                true,
+                [
+                    'id'       => $row['id'],
+                    'username' => $row['username']
+                ],
+                'Connexion réussie.'
+            );
+        } else {
             $this->sendResponse(false, null, 'Identifiants invalides.', null, 401);
         }
-
-        // Initialisation explicite de la session utilisateur
-        $_SESSION['user_id']  = $this->user->id;
-        $_SESSION['username'] = $this->user->username;
-
-        // Réponse en cas de succès
-        $this->sendResponse(
-            true,
-            [
-                'id'       => $this->user->id,
-                'username' => $this->user->username
-            ],
-            'Connexion réussie.'
-        );
     }
 
     /**
@@ -244,3 +252,4 @@ class UserController
         $this->sendResponse(true, null, 'Compte supprimé.');
     }
 }
+?>
