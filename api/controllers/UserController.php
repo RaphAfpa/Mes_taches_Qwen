@@ -26,6 +26,13 @@ class UserController
     private User $user;
 
     /**
+     * Instance de la connexion PDO.
+     *
+     * Utilisée directement pour les requêtes SQL dans la méthode login.
+     */
+    private PDO $db;
+
+    /**
      * Le contrôleur reçoit la connexion PDO depuis l’extérieur
      * (injectée par index.php).
      *
@@ -36,6 +43,7 @@ class UserController
      */
     public function __construct(PDO $db)
     {
+        $this->db = $db;
         $this->user = new User($db);
     }
 
