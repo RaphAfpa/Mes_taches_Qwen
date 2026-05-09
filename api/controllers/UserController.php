@@ -40,44 +40,6 @@ class UserController
     }
 
     /**
-     * Méthode centrale de réponse JSON standardisée.
-     *
-     * Objectif :
-     * - garantir une structure de réponse identique pour toute l’API
-     * - éviter la duplication de `http_response_code` et `json_encode`
-     *
-     * Structure retournée :
-     * {
-     *   success: bool,
-     *   data: mixed|null,
-     *   message: string|null,
-     *   errors: mixed|null
-     * }
-     *
-     * `exit` est volontaire :
-     * une fois la réponse envoyée, on stoppe toute exécution.
-     */
-    private function sendResponse(
-        bool $success,
-        $data = null,
-        ?string $message = null,
-        $errors = null,
-        int $statusCode = 200
-    ): void {
-        header('Content-Type: application/json');
-        http_response_code($statusCode);
-
-        echo json_encode([
-            'success' => $success,
-            'data'    => $data,
-            'message' => $message,
-            'errors'  => $errors
-        ]);
-
-        exit;
-    }
-
-    /**
      * Connexion utilisateur (POST /login)
      *
      * Étapes :

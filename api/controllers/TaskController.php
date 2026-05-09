@@ -35,57 +35,6 @@ class TaskController {
     }
 
     /**
-     * Assignation automatique du statut d'une tâche basée sur ses dates de début et d'échéance.
-     *
-     * @param string|null $start_date Date de début de la tâche (format 'YYYY-MM-DD').
-     * @param string|null $due_date Date d'échéance de la tâche (format 'YYYY-MM-DD').
-     * @param string|null $current_status Statut actuel de la tâche. Si 'Terminée', il ne sera pas modifié.
-     * @return string Le statut calculé ('Terminée', 'Dépassée', 'Prévue', 'En cours').
-     *
-     * Rôle : Appliquer la logique métier pour déterminer le statut d'une tâche.
-     * Pourquoi préférable :
-     * - Centralise la logique de détermination du statut, évitant la duplication de code.
-     * - Utilise des objets `DateTime` pour des comparaisons de dates robustes et précises.
-     * - Gère les cas spécifiques comme une tâche déjà 'Terminée' qui ne doit pas changer de statut automatiquement.
-     * - Fournit une classification claire des tâches basée sur leur temporalité.
-     */
-    private function assignAutomaticStatus($start_date, $due_date, $current_status = null) {
-        $today = new DateTime();
-        $today->setTime(0, 0, 0); // Normalise à minuit pour des comparaisons de jour entier
-
-        $startDateObj = $start_date ? new DateTime($start_date) : null;
-        if ($startDateObj) $startDateObj->setTime(0, 0, 0);
-
-        $dueDateObj = $due_date ? new DateTime($due_date) : null;
-        if ($dueDateObj) $dueDateObj->setTime(0, 0, 0);
-
-        // 1. Règle : Si le statut est déjà 'Terminée', ne le change pas automatiquement.
-        if ($current_status === 'Terminée') {
-            return 'Terminée';
-        }
-
-        // 2. Règle : 'Dépassée' (Date d'échéance < aujourd'hui)
-        // La date d'échéance est passée.
-        if ($dueDateObj && $dueDateObj < $today) {
-            return 'Dépassée';
-        }
-
-        // 3. Règle : 'Prévue' (Date de début > aujourd'hui)
-        // La tâche n'a pas encore commencé.
-        if ($startDateObj && $startDateObj > $today) {
-            return 'Prévue';
-        }
-
-        // 4. Règle : 'En cours'
-        // Si une tâche n'est ni 'Terminée', ni 'Dépassée', ni 'Prévue', elle est 'En cours'.
-        // Cela couvre :
-        // - Les tâches avec date de début <= aujourd'hui et date d'échéance >= aujourd'hui (inclusif)
-        // - Les tâches sans date de début mais avec date d'échéance >= aujourd'hui
-        // - Les tâches avec date de début <= aujourd'hui et sans date d'échéance (en cours indéfiniment)
-        return 'En cours';
-    }
-
-    /**
      * Gère la requête GET pour récupérer les tâches de l'utilisateur authentifié.
      *
      * Applique des filtres optionnels (catégorie, statut) et un tri.
@@ -299,7 +248,7 @@ class TaskController {
         // Vérifie si l'ID est fourni
         if (!empty($id)) {
             $this->task->id = $id;
-            $this->task->user_id = $_SESSION['user_id']; // S'assure que l'utilisateur possède la tâche
+            $this->task->user_id = $_SESSION['user_id'];
 
             // Tente de supprimer la tâche via le modèle
             if ($this->task->delete()) {

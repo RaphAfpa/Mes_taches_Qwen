@@ -82,22 +82,6 @@
         <section class="task-list" id="task-list">
             <h3>Liste des tâches</h3>
             <!-- Un exemple de carte de tâche est inclus pour la structure, mais le contenu réel est généré par JS -->
-            <div class="task-card">
-                <div class="task-header">
-                    <span class="task-status" style="background-color: var(--color-planned);"></span>
-                    <span class="task-name">Exemple de tâche (Prévue)</span>
-                </div>
-                <div class="task-details">
-                    <p>Catégorie: Travail</p>
-                    <p>Statut: Prévue</p>
-                    <p>Date de début: 2025-08-11</p>
-                    <p>Date d'échéance: 2025-08-11</p>
-                    <p>Créée le: 2025-08-11</p>
-                    <button class="blue-gray">Modifier</button>
-                    <button class="green">Terminée</button>
-                    <button class="red">Supprimer</button>
-                </div>
-            </div>
         </section>
     </div>
 </main>
