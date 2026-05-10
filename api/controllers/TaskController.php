@@ -55,6 +55,22 @@ class TaskController
         return (int) $_SESSION['user_id'];
     }
 
+    /**
+     * Vérifie le token CSRF pour les actions mutatives.
+     */
+    private function requireCsrfToken(): void
+    {
+        $headers = getallheaders();
+        $token = $headers['X-CSRF-Token'] ?? '';
+
+        if (
+            empty($_SESSION['csrf_token']) ||
+            !hash_equals($_SESSION['csrf_token'], $token)
+        ) {
+            $this->sendResponse(false, null, 'CSRF invalide', 403);
+        }
+    }
+
     /* ========================
        TÂCHES
        ======================== */
@@ -74,8 +90,7 @@ class TaskController
             $filters['status'] = $_GET['status'];
         }
 
-        $stmt = $this->task->read($userId, $filters, $sort);
-        $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $tasks = $this->task->read($userId, $filters, $sort);
 
         $this->sendResponse(true, $tasks, null, 200);
     }
@@ -83,6 +98,8 @@ class TaskController
     public function createTask(): void
     {
         $userId = $this->requireAuth();
+        $this->requireCsrfToken();
+
         $data = $this->getJsonBody();
 
         if (empty($data['name'])) {
@@ -111,6 +128,8 @@ class TaskController
     public function updateTask(): void
     {
         $userId = $this->requireAuth();
+        $this->requireCsrfToken();
+
         $data = $this->getJsonBody();
 
         if (empty($data['id']) || empty($data['name'])) {
@@ -145,6 +164,8 @@ class TaskController
     public function deleteTask(): void
     {
         $userId = $this->requireAuth();
+        $this->requireCsrfToken();
+
         $data = $this->getJsonBody();
 
         if (empty($data['id'])) {

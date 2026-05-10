@@ -46,6 +46,22 @@ class UserController
         exit;
     }
 
+    /**
+     * Vérifie le token CSRF pour les actions mutatives.
+     */
+    private function requireCsrfToken(): void
+    {
+        $headers = getallheaders();
+        $token = $headers['X-CSRF-Token'] ?? '';
+
+        if (
+            empty($_SESSION['csrf_token']) ||
+            !hash_equals($_SESSION['csrf_token'], $token)
+        ) {
+            $this->sendResponse(false, null, 'CSRF invalide', 403);
+        }
+    }
+
     /* ========================
        AUTHENTIFICATION
        ======================== */
@@ -75,9 +91,15 @@ class UserController
             $this->sendResponse(false, null, 'Identifiants invalides', 401);
         }
 
+        // Sécurité session
         session_regenerate_id(true);
 
-        $_SESSION['user_id'] = $user['id'];
+        // Génération du token CSRF (une fois par session)
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+
+        $_SESSION['user_id']  = $user['id'];
         $_SESSION['username'] = $user['username'];
 
         $this->sendResponse(true, [
@@ -89,6 +111,7 @@ class UserController
     public function logout(): void
     {
         $this->startSession();
+        $this->requireCsrfToken();
 
         $_SESSION = [];
 
@@ -122,65 +145,10 @@ class UserController
             $this->sendResponse(false, null, 'Non autorisé', 401);
         }
 
-        if (!$this->user->findById($_SESSION['user_id'])) {
+        $userData = $this->user->findById($_SESSION['user_id']);
+        if (!$userData) {
             $this->sendResponse(false, null, 'Utilisateur introuvable', 404);
         }
 
         $this->sendResponse(true, [
-            'id'       => $this->user->id,
-            'username' => $this->user->username,
-            'email'    => $this->user->email
-        ]);
-    }
-
-    public function updateProfile(): void
-    {
-        $this->startSession();
-
-        if (empty($_SESSION['user_id'])) {
-            $this->sendResponse(false, null, 'Non autorisé', 401);
-        }
-
-        $data = $this->getJsonBody();
-
-        if (empty($data['username']) || empty($data['email'])) {
-            $this->sendResponse(false, null, 'Données incomplètes', 400);
-        }
-
-        $this->user->id = $_SESSION['user_id'];
-        $this->user->username = $data['username'];
-        $this->user->email = $data['email'];
-
-        if (!empty($data['password'])) {
-            $this->user->password = $data['password'];
-        }
-
-        if (!$this->user->update()) {
-            $this->sendResponse(false, null, 'Échec de la mise à jour', 503);
-        }
-
-        $_SESSION['username'] = $this->user->username;
-
-        $this->sendResponse(true, null, 'Profil mis à jour');
-    }
-
-    public function deleteAccount(): void
-    {
-        $this->startSession();
-
-        if (empty($_SESSION['user_id'])) {
-            $this->sendResponse(false, null, 'Non autorisé', 401);
-        }
-
-        $this->user->id = $_SESSION['user_id'];
-
-        if (!$this->user->delete()) {
-            $this->sendResponse(false, null, 'Échec de la suppression', 503);
-        }
-
-        $_SESSION = [];
-        session_destroy();
-
-        $this->sendResponse(true, null, 'Compte supprimé');
-    }
-}
+            'id'       => $userData['id'],
