@@ -1,26 +1,52 @@
-Arborescence du projet
-App Nocode par Gemini avec BDD/
-├── .htaccess
-├── raphphpinfo.php
+MES_TACHES_QWEN/
+│
 ├── api/
 │   ├── .htaccess
 │   ├── index.php
 │   ├── php.ini
+│   ├── debug-login.log
+│   ├── php_error.log
+│   │
 │   ├── controllers/
+│   │   ├── Task.php
 │   │   ├── TaskController.php
 │   │   └── UserController.php
+│   │
 │   ├── core/
 │   │   └── router.php
-│   └── models/
-│       ├── Database.php
-│       ├── Task.php
-│       └── User.php
-├── creationtache.html
+│   │
+│   ├── models/
+│   │   ├── Database.php
+│   │   ├── Task.php
+│   │   └── User.php
+│   │
+│   └── routes/
+│       └── task_routes.php
+│
+├── cgi-bin/
+│
 ├── css/
 │   └── style.css
-├── index.html
+│
+├── images/
+│   └── MesTaches.svg
+│
+├── includes/
+│   ├── header_commun.php
+│   └── footer_commun.php
+│
 ├── js/
 │   ├── app.js
-│   └── auth.js
-├── profil.html
-└── taches.html
+│   ├── auth.js
+│   └── jour.js
+│
+├── logs/
+│   └── php_error.log
+│
+├── creationtache.php
+├── index.php
+├── taches.php
+├── profil.php
+│
+├── .gitignore
+└── project_tree.txt
