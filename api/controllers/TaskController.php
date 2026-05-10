@@ -1,267 +1,163 @@
 <?php
 // api/controllers/TaskController.php
 
-/**
- * Classe TaskController
- *
- * Gère les requêtes API relatives aux tâches. Ce contrôleur agit comme un intermédiaire
- * entre le routeur et le modèle `Task`, traitant les données de la requête,
- * appelant les méthodes appropriées du modèle et formatant les réponses JSON.
- *
- * Rôle : Orchestrer les opérations CRUD sur les tâches en réponse aux requêtes HTTP,
- * en assurant l'authentification de l'utilisateur et la logique métier spécifique aux tâches.
- *
- * Pourquoi préférable :
- * - Sépare la logique de gestion des requêtes (contrôleur) de la logique d'accès aux données (modèle).
- * - Centralise la validation des entrées et la gestion des réponses HTTP pour les tâches.
- * - Intègre la logique d'authentification basée sur la session pour s'assurer que seules
- *   les tâches de l'utilisateur connecté sont manipulées.
- * - Implémente une logique métier pour l'assignation automatique du statut des tâches.
- */
-class TaskController {
-    private $task; // Instance du modèle Task
+class TaskController
+{
+    private Task $task;
 
-    /**
-     * Constructeur de la classe TaskController.
-     *
-     * @param PDO $db L'objet de connexion à la base de données (PDO).
-     * Rôle : Initialiser le contrôleur avec une instance du modèle Task,
-     * lui permettant d'interagir avec la base de données via ce modèle.
-     * Pourquoi préférable : Utilise l'injection de dépendances pour le modèle Task,
-     * ce qui rend le contrôleur plus flexible et testable.
-     */
-    public function __construct($db) {
+    public function __construct(PDO $db)
+    {
         $this->task = new Task($db);
     }
 
-    /**
-     * Gère la requête GET pour récupérer les tâches de l'utilisateur authentifié.
-     *
-     * Applique des filtres optionnels (catégorie, statut) et un tri.
-     * Retourne une liste de tâches au format JSON ou un message d'erreur/absence de tâches.
-     *
-     * Rôle : Fournir les tâches de l'utilisateur via l'API.
-     * Pourquoi préférable :
-     * - Vérifie l'authentification de l'utilisateur via la session avant de traiter la requête.
-     * - Utilise le modèle `Task` pour interagir avec la base de données, respectant la séparation des préoccupations.
-     * - Gère les paramètres de requête GET pour le filtrage et le tri, offrant de la flexibilité.
-     * - Retourne des codes de statut HTTP appropriés (200 OK, 401 Unauthorized, 404 Not Found).
-     */
-    public function getTasks() {
-        session_start(); // Démarre ou reprend la session
-        // Vérifie si l'utilisateur est connecté
-        if (!isset($_SESSION['user_id'])) {
-            http_response_code(401); // Non autorisé
-            echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer."));
-            return;
+    /* ========================
+       UTILITAIRES
+       ======================== */
+
+    private function startSession(): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+    }
+
+    private function getJsonBody(): array
+    {
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true);
+        return is_array($data) ? $data : [];
+    }
+
+    private function sendResponse(
+        bool $success,
+        ?array $data = null,
+        ?string $message = null,
+        int $status = 200
+    ): void {
+        http_response_code($status);
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => $success,
+            'data'    => $data,
+            'message' => $message
+        ]);
+        exit;
+    }
+
+    private function requireAuth(): int
+    {
+        $this->startSession();
+
+        if (empty($_SESSION['user_id'])) {
+            $this->sendResponse(false, null, 'Non autorisé', 401);
         }
 
-        $user_id = $_SESSION['user_id'];
-        $filters = [];
-        $sort = 'created_at DESC'; // Tri par défaut
+        return (int) $_SESSION['user_id'];
+    }
 
-        // Récupère les filtres et le tri des paramètres GET
-        if (isset($_GET['category']) && $_GET['category'] !== 'all') {
+    /* ========================
+       TÂCHES
+       ======================== */
+
+    public function getTasks(): void
+    {
+        $userId = $this->requireAuth();
+
+        $filters = [];
+        $sort = $_GET['sort'] ?? 'created_at DESC';
+
+        if (!empty($_GET['category']) && $_GET['category'] !== 'all') {
             $filters['category'] = $_GET['category'];
         }
-        if (isset($_GET['status']) && $_GET['status'] !== 'all') {
+
+        if (!empty($_GET['status']) && $_GET['status'] !== 'all') {
             $filters['status'] = $_GET['status'];
         }
-        if (isset($_GET['sort'])) {
-            $sort = $_GET['sort'];
-        }
 
-        // Lit les tâches via le modèle Task
-        $stmt = $this->task->read($user_id, $filters, $sort);
-        $num = $stmt->rowCount();
+        $stmt = $this->task->read($userId, $filters, $sort);
+        $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        if ($num > 0) {
-            $tasks_arr = array();
-            // Récupère chaque ligne de résultat et la formate en tableau associatif
-            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                extract($row); // Extrait les variables du tableau $row (ex: $id, $name)
-                $task_item = array(
-                    "id" => $id,
-                    "user_id" => $user_id,
-                    "name" => $name,
-                    "category" => $category,
-                    "status" => $status,
-                    "start_date" => $start_date,
-                    "due_date" => $due_date,
-                    "description" => $description,
-                    "created_at" => $created_at
-                );
-                array_push($tasks_arr, $task_item);
-            }
-            http_response_code(200); // OK
-            echo json_encode(array("tasks" => $tasks_arr));
-        } else {
-            // Retourne 200 OK avec un tableau vide et un message lorsque aucune tâche n'est trouvée.
-            // C'est une meilleure pratique pour les API que de retourner un 404 pour une requête valide sans résultat.
-            http_response_code(200); // OK
-            echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer.", "tasks" => []));
-        }
+        $this->sendResponse(true, $tasks, null, 200);
     }
 
-    /**
-     * Gère la requête POST pour créer une nouvelle tâche.
-     *
-     * Récupère les données de la tâche depuis le corps de la requête JSON,
-     * assigne automatiquement le statut et tente de créer la tâche via le modèle.
-     *
-     * Rôle : Permettre aux utilisateurs authentifiés de créer de nouvelles tâches.
-     * Pourquoi préférable :
-     * - Vérifie l'authentification de l'utilisateur.
-     * - Valide la présence du nom de la tâche, qui est obligatoire.
-     * - Utilise `json_decode(file_get_contents("php://input"))` pour lire les données JSON du corps de la requête,
-     *   ce qui est standard pour les API RESTful.
-     * - Intègre la logique d'assignation automatique du statut, simplifiant la logique côté client.
-     * - Retourne des codes de statut HTTP appropriés (201 Created, 400 Bad Request, 401 Unauthorized, 503 Service Unavailable).
-     */
-    public function createTask() {
-        session_start(); // Démarre ou reprend la session
-        // Vérifie si l'utilisateur est connecté
-        if (!isset($_SESSION['user_id'])) {
-            http_response_code(401); // Non autorisé
-            echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer."));
-            return;
+    public function createTask(): void
+    {
+        $userId = $this->requireAuth();
+        $data = $this->getJsonBody();
+
+        if (empty($data['name'])) {
+            $this->sendResponse(false, null, 'Nom de tâche requis', 400);
         }
 
-        $data = json_decode(file_get_contents("php://input")); // Récupère les données JSON de la requête
+        $this->task->user_id = $userId;
+        $this->task->name = $data['name'];
+        $this->task->category = $data['category'] ?? null;
+        $this->task->start_date = $data['start_date'] ?? null;
+        $this->task->due_date = $data['due_date'] ?? null;
+        $this->task->description = $data['description'] ?? null;
 
-        // Vérifie si le nom de la tâche est fourni
-        if (!empty($data->name)) {
-            $this->task->user_id = $_SESSION['user_id'];
-            $this->task->name = $data->name;
-            $this->task->category = isset($data->category) ? $data->category : null;
-            $this->task->start_date = isset($data->start_date) ? $data->start_date : null;
-            $this->task->due_date = isset($data->due_date) ? $data->due_date : null;
-            $this->task->description = isset($data->description) ? $data->description : null;
+        $this->task->status = $this->task->assignAutomaticStatus(
+            $this->task->start_date,
+            $this->task->due_date
+        );
 
-            // Assigne le statut automatiquement en fonction des dates
-            $this->task->status = $this->assignAutomaticStatus($this->task->start_date, $this->task->due_date);
-
-            // Tente de créer la tâche via le modèle
-            if ($this->task->create()) {
-                http_response_code(201); // Créé
-                echo json_encode(array("message" => "Tâche créée avec succès."));
-            } else {
-                http_response_code(503); // Service indisponible (erreur serveur)
-                echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer."));
-            }
-        } else {
-            http_response_code(400); // Mauvaise requête
-            echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer."));
+        if (!$this->task->create()) {
+            $this->sendResponse(false, null, 'Erreur lors de la création', 503);
         }
+
+        $this->sendResponse(true, null, 'Tâche créée', 201);
     }
 
-    /**
-     * Gère la requête PUT pour mettre à jour une tâche existante.
-     *
-     * Récupère les données de la tâche depuis le corps de la requête JSON,
-     * met à jour le statut (en respectant le statut 'Terminée' si fourni)
-     * et tente de modifier la tâche via le modèle.
-     *
-     * Rôle : Permettre aux utilisateurs authentifiés de modifier leurs tâches.
-     * Pourquoi préférable :
-     * - Vérifie l'authentification de l'utilisateur et l'appartenance de la tâche.
-     * - Gère les erreurs de parsing JSON.
-     * - Permet de mettre à jour le statut manuellement à 'Terminée' ou de le laisser
-     *   être assigné automatiquement.
-     * - Retourne des codes de statut HTTP appropriés (200 OK, 400 Bad Request, 401 Unauthorized, 503 Service Unavailable).
-     */
-    public function updateTask() {
-        session_start(); // Démarre ou reprend la session
-        // Vérifie si l'utilisateur est connecté
-        if (!isset($_SESSION['user_id'])) {
-            http_response_code(401); // Non autorisé
-            echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer."));
-            return;
+    public function updateTask(): void
+    {
+        $userId = $this->requireAuth();
+        $data = $this->getJsonBody();
+
+        if (empty($data['id']) || empty($data['name'])) {
+            $this->sendResponse(false, null, 'Données incomplètes', 400);
         }
 
-        $data = json_decode(file_get_contents("php://input")); // Récupère les données JSON de la requête
-        // Vérifie les erreurs de parsing JSON
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            http_response_code(400); // Mauvaise requête
-            echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer."));
-            return;
-        }
+        $this->task->id = $data['id'];
+        $this->task->user_id = $userId;
+        $this->task->name = $data['name'];
+        $this->task->category = $data['category'] ?? null;
+        $this->task->start_date = $data['start_date'] ?? null;
+        $this->task->due_date = $data['due_date'] ?? null;
+        $this->task->description = $data['description'] ?? null;
 
-        // Vérifie si l'ID et le nom de la tâche sont fournis
-        if (!empty($data->id) && !empty($data->name)) {
-            $this->task->id = $data->id;
-            $this->task->user_id = $_SESSION['user_id']; // S'assure que l'utilisateur possède la tâche
-            $this->task->name = $data->name;
-            $this->task->category = isset($data->category) ? $data->category : null;
-            $this->task->start_date = isset($data->start_date) ? $data->start_date : null;
-            $this->task->due_date = isset($data->due_date) ? $data->due_date : null;
-            $this->task->description = isset($data->description) ? $data->description : null;
-
-            // Détermine le statut : si le statut entrant est 'Terminée', le conserve. Sinon, l'assigne automatiquement.
-            $incoming_status = isset($data->status) ? $data->status : null;
-            if ($incoming_status === 'Terminée') {
-                $this->task->status = 'Terminée';
-            } else {
-                $this->task->status = $this->assignAutomaticStatus($this->task->start_date, $this->task->due_date, $incoming_status);
-            }
-
-            // Tente de mettre à jour la tâche via le modèle
-            if ($this->task->update()) {
-                $response = array("message" => "Tâche mise à jour avec succès.");
-                http_response_code(200); // OK
-                echo json_encode($response);
-            } else {
-                $response = array("message" => "Une erreur s'est produite. Veuillez réessayer.");
-                http_response_code(503); // Service indisponible
-                echo json_encode($response);
-            }
+        if (($data['status'] ?? '') === 'Terminée') {
+            $this->task->status = 'Terminée';
         } else {
-            http_response_code(400); // Mauvaise requête
-            echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer."));
+            $this->task->status = $this->task->assignAutomaticStatus(
+                $this->task->start_date,
+                $this->task->due_date,
+                $data['status'] ?? null
+            );
         }
+
+        if (!$this->task->update()) {
+            $this->sendResponse(false, null, 'Erreur lors de la mise à jour', 503);
+        }
+
+        $this->sendResponse(true, null, 'Tâche mise à jour');
     }
 
-    /**
-     * Gère la requête DELETE pour supprimer une tâche.
-     *
-     * Récupère l'ID de la tâche depuis les paramètres GET ou le corps de la requête JSON,
-     * et tente de supprimer la tâche via le modèle.
-     *
-     * Rôle : Permettre aux utilisateurs authentifiés de supprimer leurs tâches.
-     * Pourquoi préférable :
-     * - Vérifie l'authentification de l'utilisateur et l'appartenance de la tâche.
-     * - Gère la récupération de l'ID de manière flexible (GET ou corps de requête).
-     * - Retourne des codes de statut HTTP appropriés (200 OK, 400 Bad Request, 401 Unauthorized, 503 Service Unavailable).
-     */
-    public function deleteTask() {
-        session_start(); // Démarre ou reprend la session
-        // Vérifie si l'utilisateur est connecté
-        if (!isset($_SESSION['user_id'])) {
-            http_response_code(401); // Non autorisé
-            echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer."));
-            return;
+    public function deleteTask(): void
+    {
+        $userId = $this->requireAuth();
+        $data = $this->getJsonBody();
+
+        if (empty($data['id'])) {
+            $this->sendResponse(false, null, 'ID requis pour la suppression', 400);
         }
 
-        // Récupère l'ID de la tâche depuis l'URL (GET) ou le corps de la requête (JSON)
-        $id = isset($_GET['id']) ? $_GET['id'] : (json_decode(file_get_contents("php://input"))->id ?? null);
+        $this->task->id = $data['id'];
+        $this->task->user_id = $userId;
 
-        // Vérifie si l'ID est fourni
-        if (!empty($id)) {
-            $this->task->id = $id;
-            $this->task->user_id = $_SESSION['user_id'];
-
-            // Tente de supprimer la tâche via le modèle
-            if ($this->task->delete()) {
-                http_response_code(200); // OK
-                echo json_encode(array("message" => "Tâche supprimée avec succès."));
-            } else {
-                http_response_code(503); // Service indisponible
-                echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer."));
-            }
-        } else {
-            http_response_code(400); // Mauvaise requête
-            echo json_encode(array("message" => "Une erreur s'est produite. Veuillez réessayer."));
+        if (!$this->task->delete()) {
+            $this->sendResponse(false, null, 'Erreur lors de la suppression', 503);
         }
+
+        $this->sendResponse(true, null, 'Tâche supprimée');
     }
 }
-?>

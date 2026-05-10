@@ -37,7 +37,6 @@ MES_TACHES_QWEN/
 │
 ├── js/
 │   ├── app.js
-│   ├── auth.js
 │   └── jour.js
 │
 ├── logs/

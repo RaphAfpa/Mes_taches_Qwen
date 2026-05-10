@@ -21,7 +21,6 @@ include 'includes/header_commun.php';
     <!--
         Contenu principal de la page d'accueil.
         Rôle : Afficher un message de bienvenue et fournir les formulaires pour se connecter ou créer un compte.
-        L'interaction (affichage/masquage) des formulaires est gérée par le fichier JS `auth.js`.
     -->
     <main class="container">
         <h2>Bienvenue sur Mes tâches</h2>
@@ -36,7 +35,6 @@ include 'includes/header_commun.php';
             <!-- 
                 Formulaire de connexion.
                 Rôle : Permettre à un utilisateur existant de se connecter.
-                La soumission est gérée par `auth.js` qui envoie les données à l'API.
             -->
             <form id="login-form" style="display: none;">
                 <h3>Connexion</h3>
@@ -50,7 +48,6 @@ include 'includes/header_commun.php';
             <!-- 
                 Formulaire d'inscription.
                 Rôle : Permettre à un nouvel utilisateur de créer un compte.
-                La soumission est gérée par `auth.js` qui envoie les données à l'API.
             -->
             <form id="register-form" style="display: none;">
                 <h3>Créer un compte</h3>

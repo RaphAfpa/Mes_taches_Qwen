@@ -10,28 +10,29 @@ class Database
 
     private ?PDO $conn = null;
 
+    /**
+     * @throws RuntimeException
+     */
     public function __construct()
     {
-        // ❗ AUCUN fallback de secret en dur
         $this->host     = getenv('DB_HOST') ?: 'localhost';
         $this->dbName   = getenv('DB_NAME') ?: '';
         $this->username = getenv('DB_USER') ?: '';
         $this->password = getenv('DB_PASSWORD') ?: '';
 
-        if (
-            empty($this->dbName) ||
-            empty($this->username) ||
-            empty($this->password)
-        ) {
+        if ($this->dbName === '' || $this->username === '' || $this->password === '') {
             throw new RuntimeException(
                 'Configuration de base de données manquante (variables d’environnement)'
             );
         }
     }
 
+    /**
+     * @throws RuntimeException
+     */
     public function getConnection(): PDO
     {
-        if ($this->conn !== null) {
+        if ($this->conn instanceof PDO) {
             return $this->conn;
         }
 
@@ -52,14 +53,12 @@ class Database
                     PDO::ATTR_EMULATE_PREPARES   => false,
                 ]
             );
-        } catch (PDOException $e) {
-            // ✅ log serveur uniquement
-            error_log('[DB ERROR] ' . $e->getMessage());
 
-            // ❌ aucune info sensible à l’utilisateur
+            return $this->conn;
+
+        } catch (PDOException $e) {
+            error_log('[DB ERROR] ' . $e->getMessage());
             throw new RuntimeException('Erreur de connexion à la base de données.');
         }
-
-        return $this->conn;
     }
 }

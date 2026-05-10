@@ -1,28 +1,31 @@
 <?php
-// api/index.php - API Entry Point
+// api/index.php
 
-header('Content-Type: application/json');
+// --- CORS CONFIGURATION ---------------------------------
 
-// Allow from any origin
-if (isset($_SERVER['HTTP_ORIGIN'])) {
-    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
-    header('Access-Control-Allow-Credentials: true');
-    header('Access-Control-Max-Age: 86400');    // cache for 1 day
+$allowedOrigins = [
+    'https://ton-domaine.fr',
+    'https://www.ton-domaine.fr'
+];
+
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+
+if (in_array($origin, $allowedOrigins, true)) {
+    header("Access-Control-Allow-Origin: $origin");
+    header("Access-Control-Allow-Credentials: true");
 }
 
-// Access-Control headers are received during OPTIONS requests
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD']))
-        header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE");         
-
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']))
-        header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
-
-    exit(0);
+// Préflight
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit;
 }
 
-// Include necessary files
+// --- BOOTSTRAP ------------------------------------------
+
 require_once 'core/router.php';
 require_once 'models/Database.php';
 require_once 'models/User.php';
@@ -30,32 +33,29 @@ require_once 'models/Task.php';
 require_once 'controllers/UserController.php';
 require_once 'controllers/TaskController.php';
 
-// Instantiate database and get connection
-$database = new Database();
-$db = $database->getConnection();
+// --- DEPENDENCIES ---------------------------------------
 
-// Instantiate controllers with database connection
+$db = (new Database())->getConnection();
+
 $userController = new UserController($db);
 $taskController = new TaskController($db);
 
-// Create router instance
 $router = new Router();
 
-// Define API routes
-// User routes
+// --- ROUTES ---------------------------------------------
+
 $router->addRoute('POST', '/login', [$userController, 'login']);
 $router->addRoute('POST', '/register', [$userController, 'register']);
-$router->addRoute('GET', '/logout', [$userController, 'logout']);
-$router->addRoute('GET', '/profile', [$userController, 'getProfile']);
-$router->addRoute('PUT', '/profile', [$userController, 'updateProfile']);
+$router->addRoute('POST', '/logout', [$userController, 'logout']); // ✅ POST
+$router->addRoute('GET',  '/profile', [$userController, 'profile']);
+$router->addRoute('PUT',  '/profile', [$userController, 'updateProfile']);
 $router->addRoute('DELETE', '/profile', [$userController, 'deleteAccount']);
 
-// Task routes
-$router->addRoute('GET', '/tasks', [$taskController, 'getTasks']);
+$router->addRoute('GET',  '/tasks', [$taskController, 'getTasks']);
 $router->addRoute('POST', '/tasks', [$taskController, 'createTask']);
-$router->addRoute('PUT', '/tasks', [$taskController, 'updateTask']);
+$router->addRoute('PUT',  '/tasks', [$taskController, 'updateTask']);
 $router->addRoute('DELETE', '/tasks', [$taskController, 'deleteTask']);
 
-// Dispatch the request
+// --- DISPATCH -------------------------------------------
+
 $router->dispatch();
-?>
