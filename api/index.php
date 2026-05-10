@@ -1,6 +1,13 @@
 <?php
 // api/index.php - API Entry Point
 
+// Gestion des erreurs
+ini_set('display_errors', '1');
+ini_set('log_errors', '1');
+ini_set('error_reporting', E_ALL);
+ini_set('error_log', __DIR__ . '/php_error.log');
+
+
 header('Content-Type: application/json');
 
 // Allow from any origin
@@ -58,4 +65,3 @@ $router->addRoute('DELETE', '/tasks', [$taskController, 'deleteTask']);
 
 // Dispatch the request
 $router->dispatch();
-?>

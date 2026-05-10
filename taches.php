@@ -6,13 +6,18 @@
         </a>
         <div id="user-info-and-menu">
             <span id="user-pseudo">Pseudo Utilisateur</span>
-            <button class="blue-gray" id="menu-button">Menu</button>
-            <nav id="header-menu">
-                <ul>
-                    <li><a href="profil.php">Profil</a></li>
-                    <li><a href="#" id="logout-button">Déconnexion</a></li>
-                </ul>
-            </nav>
+<button id="menu-button" class="burger" aria-label="Ouvrir le menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</button>
+
+<nav id="header-menu">
+    <ul>
+        <li><a href="profil.php">Profil</a></li>
+        <li><a href="#" id="logout-button">Déconnexion</a></li>
+    </ul>
+</nav>
         </div>
     </header>
 </div>

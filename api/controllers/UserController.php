@@ -1,46 +1,11 @@
 <?php
 // api/controllers/UserController.php
 
-/**
- * Contrôleur responsable des fonctionnalités liées aux utilisateurs.
- *
- * Rôle dans l’architecture :
- * - Reçoit les requêtes HTTP (via le routeur)
- * - Vérifie l’authentification via la session
- * - Ordonne les appels au modèle User
- * - Retourne des réponses JSON standardisées
- *
- * Ce contrôleur ne contient PAS :
- * - de logique SQL
- * - de logique de routage
- * - de logique d’affichage HTML
- */
 class UserController
 {
-    /**
-     * Instance du modèle User.
-     *
-     * Le contrôleur manipule le modèle pour accéder aux données,
-     * mais ne connaît jamais les détails SQL.
-     */
+    private PDO $db;
     private User $user;
 
-    /**
-     * Instance de la connexion PDO.
-     *
-     * Utilisée directement pour les requêtes SQL dans la méthode login.
-     */
-    private PDO $db;
-
-    /**
-     * Le contrôleur reçoit la connexion PDO depuis l’extérieur
-     * (injectée par index.php).
-     *
-     * Intérêt pédagogique :
-     * - évite les dépendances cachées
-     * - facilite les tests
-     * - respecte l’injection de dépendances sans framework
-     */
     public function __construct(PDO $db)
     {
         $this->db = $db;
@@ -48,115 +13,94 @@ class UserController
     }
 
     /**
-     * Connexion utilisateur (POST /login)
-     *
-     * Étapes :
-     * 1. Ouverture de la session
-     * 2. Lecture du JSON reçu
-     * 3. Vérification des champs obligatoires
-     * 4. Recherche utilisateur
-     * 5. Vérification du mot de passe
-     * 6. Initialisation de la session
-     * 7. Réponse JSON
+     * POST /api/login
      */
     public function login(): void
     {
-        session_start();
+        $this->startSession();
 
-        // Lecture du corps JSON brut de la requête
-        $data = json_decode(file_get_contents('php://input'));
+        $data = $this->getJsonInput();
 
-        // Validation minimale des entrées
-        if (empty($data->username) || empty($data->password)) {
-            $this->sendResponse(false, null, 'Données incomplètes.', null, 400);
+        if (empty($data['username']) || empty($data['password'])) {
+            $this->jsonResponse(false, 'Champs requis manquants', 400);
+            return;
         }
 
-        // Utilisation de requêtes préparées pour éviter les injections SQL
-        $query = 'SELECT id, username, password FROM users WHERE username = :username LIMIT 1';
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':username', $data->username);
-        $stmt->execute();
-
-        if ($stmt->rowCount() > 0) {
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            // Vérification du mot de passe
-            if (!password_verify($data->password, $row['password'])) {
-                $this->sendResponse(false, null, 'Identifiants invalides.', null, 401);
-            }
-
-            // Initialisation explicite de la session utilisateur
-            $_SESSION['user_id']  = $row['id'];
-            $_SESSION['username'] = $row['username'];
-
-            // Régénération de l'ID de session pour prévenir la fixation de session
-            session_regenerate_id(true);
-
-            // Réponse en cas de succès
-            $this->sendResponse(
-                true,
-                [
-                    'id'       => $row['id'],
-                    'username' => $row['username']
-                ],
-                'Connexion réussie.'
-            );
-        } else {
-            $this->sendResponse(false, null, 'Identifiants invalides.', null, 401);
+        if (!$this->user->findByUsername($data['username'])) {
+            $this->jsonResponse(false, 'Identifiants invalides', 401);
+            return;
         }
+
+        if (!password_verify($data['password'], $this->user->password)) {
+            $this->jsonResponse(false, 'Identifiants invalides', 401);
+            return;
+        }
+
+        // ✅ Protection contre la fixation de session
+        session_regenerate_id(true);
+
+        $_SESSION['user_id'] = $this->user->id;
+        $_SESSION['username'] = $this->user->username;
+
+        $this->jsonResponse(true, 'Connexion réussie');
     }
 
     /**
-     * Inscription d’un nouvel utilisateur (POST /register)
+     * POST /api/register
      */
     public function register(): void
     {
-        $data = json_decode(file_get_contents('php://input'));
+        $data = $this->getJsonInput();
 
         if (
-            empty($data->username) ||
-            empty($data->email) ||
-            empty($data->password)
+            empty($data['username']) ||
+            empty($data['email']) ||
+            empty($data['password'])
         ) {
-            $this->sendResponse(false, null, 'Données incomplètes.', null, 400);
+            $this->jsonResponse(false, 'Champs requis manquants', 400);
+            return;
         }
 
-        // Hydratation du modèle
-        $this->user->username = $data->username;
-        $this->user->email    = $data->email;
-        $this->user->password = $data->password;
+        if ($this->user->findByUsername($data['username'])) {
+            $this->jsonResponse(false, 'Nom d’utilisateur déjà utilisé', 409);
+            return;
+        }
 
-        // Le modèle gère :
-        // - les doublons
-        // - le hachage du mot de passe
+        if ($this->user->findByEmail($data['email'])) {
+            $this->jsonResponse(false, 'Email déjà utilisé', 409);
+            return;
+        }
+
+        $this->user->username = $data['username'];
+        $this->user->email = $data['email'];
+        $this->user->password = password_hash($data['password'], PASSWORD_DEFAULT);
+
         if (!$this->user->create()) {
-            $this->sendResponse(false, null, 'Utilisateur déjà existant.', null, 400);
+            $this->jsonResponse(false, 'Erreur lors de la création du compte', 500);
+            return;
         }
 
-        // 201 = ressource créée
-        $this->sendResponse(true, null, 'Compte créé avec succès.', null, 201);
+        $this->jsonResponse(true, 'Compte créé avec succès', 201);
     }
 
     /**
-     * Récupération du profil utilisateur connecté (GET /profile)
+     * GET /api/profile
      */
-    public function getProfile(): void
+    public function profile(): void
     {
-        session_start();
+        $this->startSession();
 
-        // Vérification d’authentification
-        if (!isset($_SESSION['user_id'])) {
-            $this->sendResponse(false, null, 'Non autorisé.', null, 401);
+        if (empty($_SESSION['user_id'])) {
+            $this->jsonResponse(false, 'Non authentifié', 401);
+            return;
         }
 
-        $this->user->id = $_SESSION['user_id'];
-
-        if (!$this->user->findById()) {
-            $this->sendResponse(false, null, 'Utilisateur non trouvé.', null, 404);
+        if (!$this->user->findById($_SESSION['user_id'])) {
+            $this->jsonResponse(false, 'Utilisateur introuvable', 404);
+            return;
         }
 
-        // Les données retournées sont volontairement limitées
-        $this->sendResponse(true, [
+        $this->jsonResponse(true, 'Profil chargé', 200, [
             'id'       => $this->user->id,
             'username' => $this->user->username,
             'email'    => $this->user->email
@@ -164,62 +108,68 @@ class UserController
     }
 
     /**
-     * Mise à jour du profil utilisateur (PUT /profile)
+     * GET /api/logout
+     * ✅ LOGOUT CORRECT ET DÉFINITIF
      */
-    public function updateProfile(): void
+    public function logout(): void
     {
-        session_start();
+        $this->startSession();
 
-        if (!isset($_SESSION['user_id'])) {
-            $this->sendResponse(false, null, 'Non autorisé.', null, 401);
+        // ✅ Vider complètement la session
+        $_SESSION = [];
+
+        // ✅ Supprimer le cookie de session
+        if (ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            setcookie(
+                session_name(),
+                '',
+                time() - 42000,
+                $params['path'],
+                $params['domain'],
+                $params['secure'],
+                $params['httponly']
+            );
         }
 
-        $data = json_decode(file_get_contents('php://input'));
-
-        if (empty($data->username) || empty($data->email)) {
-            $this->sendResponse(false, null, 'Données incomplètes.', null, 400);
-        }
-
-        $this->user->id       = $_SESSION['user_id'];
-        $this->user->username = $data->username;
-        $this->user->email    = $data->email;
-
-        // Le mot de passe est optionnel
-        if (!empty($data->password)) {
-            $this->user->password = $data->password;
-        }
-
-        if (!$this->user->update()) {
-            $this->sendResponse(false, null, 'Échec de la mise à jour.', null, 503);
-        }
-
-        // Synchronisation de la session
-        $_SESSION['username'] = $this->user->username;
-
-        $this->sendResponse(true, null, 'Profil mis à jour.');
-    }
-
-    /**
-     * Suppression du compte utilisateur (DELETE /profile)
-     */
-    public function deleteAccount(): void
-    {
-        session_start();
-
-        if (!isset($_SESSION['user_id'])) {
-            $this->sendResponse(false, null, 'Non autorisé.', null, 401);
-        }
-
-        $this->user->id = $_SESSION['user_id'];
-
-        if (!$this->user->delete()) {
-            $this->sendResponse(false, null, 'Échec de la suppression.', null, 503);
-        }
-
-        // Destruction explicite de la session
+        // ✅ Détruire côté serveur
         session_destroy();
 
-        $this->sendResponse(true, null, 'Compte supprimé.');
+        $this->jsonResponse(true, 'Déconnexion réussie');
+    }
+
+    /* =======================================================
+       Méthodes utilitaires privées
+       ======================================================= */
+
+    private function startSession(): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+    }
+
+    private function getJsonInput(): array
+    {
+        $raw = file_get_contents('php://input');
+        $data = json_decode($raw, true);
+
+        return is_array($data) ? $data : [];
+    }
+
+    private function jsonResponse(
+        bool $success,
+        string $message,
+        int $status = 200,
+        array $data = []
+    ): void {
+        http_response_code($status);
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => $success,
+            'message' => $message,
+            'user'    => $data ?: null
+        ]);
+        exit;
     }
 }
-?>

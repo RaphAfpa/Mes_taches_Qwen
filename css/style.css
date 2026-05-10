@@ -1,84 +1,56 @@
-/* css/style.css */
+/* =========================================================
+   Variables CSS
+   ========================================================= */
 
-/**
- * Fichier de style CSS principal de l'application "Mes tâches".
- *
- * Ce fichier définit l'apparence visuelle de l'interface utilisateur,
- * en utilisant des variables CSS pour faciliter la gestion des couleurs
- * et des espacements. Il inclut également des styles pour les éléments
- * de base, les mises en page en grille, les composants spécifiques
- * comme les cartes de tâches, et des ajustements responsives.
- */
-
-/*
- * Variables CSS (Custom Properties)
- * Rôle : Centraliser les valeurs réutilisables (couleurs, espacements)
- * pour une maintenance facile et une cohérence visuelle.
- * Pourquoi préférable : Permet de modifier rapidement le thème de l'application
- * en changeant quelques valeurs à un seul endroit.
- */
 :root {
-    /* Couleurs d'état des tâches */
-    --color-planned: #3B82F6;   /* Prévue (bleu) */
-    --color-in-progress: #059669; /* En cours (vert) */
-    --color-overdue: #EF4444;   /* Dépassée (rouge) */
-    --color-completed: #9CA3AF; /* Terminée (gris) */
+    /* États des tâches */
+    --color-planned: #3B82F6;
+    --color-in-progress: #059669;
+    --color-overdue: #EF4444;
+    --color-completed: #9CA3AF;
 
-    /* Couleurs générales de l'interface */
-    --color-background: #d0d3db; /* Arrière-plan général */
-    --color-text: #111827; /* Couleur du texte principal */
-    --color-button-green: #10B981; /* Bouton vert (ex: Ajouter, Se connecter) */
-    --color-button-red: #EF4444;   /* Bouton rouge (ex: Supprimer) */
-    --color-button-blue-gray: #6B7280; /* Bouton bleu-gris (ex: Modifier, Annuler) */
-    --color-header-bg: #FFFFFF; /* Arrière-plan de l'en-tête (blanc) */
-    --color-border: #D1D5DB; /* Couleur des bordures et séparateurs (gris clair) */
+    /* Interface – mode clair */
+    --color-background: #d0d3db;
+    --color-surface: #ffffff;
+    --color-header-bg: var(--color-surface);
+    --color-text: #111827;
+    --color-border: #D1D5DB;
+
+    /* Boutons */
+    --color-button-green: #10B981;
+    --color-button-red: #EF4444;
+    --color-button-blue-gray: #6B7280;
+
+    /* Accessibilité */
+    --focus-color: #2563EB;
 }
 
-/*
- * Styles de base du corps de la page
- * Rôle : Définir la police, les couleurs de fond et de texte par défaut,
- * et réinitialiser les marges/remplissages du navigateur.
- */
+/* =========================================================
+   Base globale
+   ========================================================= */
+
+* {
+    box-sizing: border-box;
+}
+
 body {
-    font-family: 'Calibri', sans-serif; /* Police de caractères */
-    background-color: var(--color-background); /* Couleur de fond */
-    color: var(--color-text); /* Couleur du texte */
-    margin: 0; /* Supprime les marges par défaut du corps */
-    padding: 0; /* Supprime les remplissages par défaut du corps */
-    line-height: 1.6; /* Hauteur de ligne pour une meilleure lisibilité */
+    font-family: Calibri, sans-serif;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    margin: 0;
+    line-height: 1.6;
 }
 
-/*
- * Configuration de la grille de base pour mobile
- * Rôle : Créer un conteneur centré avec des marges et une structure de grille.
- * Pourquoi préférable : Facilite la création de mises en page responsives
- * en définissant une structure de base pour les éléments.
- */
 .container {
-    max-width: 360px; /* Largeur maximale pour les écrans mobiles de base */
-    margin: 0 auto; /* Centre le conteneur horizontalement */
-    padding: 0 16px; /* Marges intérieures de 16px sur les côtés */
-    box-sizing: border-box; /* Inclut le padding et la bordure dans la largeur/hauteur totale */
+    max-width: 360px;
+    margin: 0 auto;
+    padding: 0 16px;
 }
 
-.grid {
-    display: grid; /* Active le mode grille */
-    grid-template-columns: repeat(6, 1fr); /* Crée 6 colonnes de largeur égale */
-    gap: 14px; /* Espacement entre les éléments de la grille (gouttières) */
-}
+/* =========================================================
+   Header
+   ========================================================= */
 
-.grid-item-span-3 {
-    grid-column: span 3; /* Un élément occupe 3 colonnes de la grille */
-}
-
-.grid-item-span-6 {
-    grid-column: span 6; /* Un élément occupe 6 colonnes (toute la largeur) */
-}
-
-/*
- * Styles de l'en-tête
- * Rôle : Définir l'apparence de la barre d'en-tête de l'application.
- */
 #header-wrapper {
     background-color: var(--color-header-bg);
     border-bottom: 1px solid var(--color-border);
@@ -92,283 +64,79 @@ header.container {
 }
 
 #header-logo {
-    height: 40px; /* Hauteur du logo */
+    height: 40px;
 }
 
-/*
- * Styles pour le conteneur des informations utilisateur et du menu dans l'en-tête
- * Rôle : Aligner le pseudo de l'utilisateur et le bouton de menu.
- */
 #user-info-and-menu {
-    position: relative; /* Permet de positionner #header-menu absolument par rapport à ce conteneur */
-    display: flex; /* Utilise flexbox pour aligner les éléments à l'intérieur */
-    align-items: center; /* Centre les éléments verticalement */
-    gap: 10px; /* Espacement entre les éléments */
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
 }
 
-/*
- * Styles du menu déroulant (hamburger menu)
- * Rôle : Définir l'apparence et le positionnement du menu de navigation.
- */
+/* =========================================================
+   Menu Burger
+   ========================================================= */
+
+.burger {
+    background: none;
+    border: none;
+    width: 32px;
+    height: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+}
+
+.burger span {
+    height: 3px;
+    width: 100%;
+    background-color: var(--color-text);
+    border-radius: 2px;
+}
+
 #header-menu {
-    position: absolute; /* Positionnement absolu par rapport à .header-right */
-    top: 100%; /* Positionne le menu juste en dessous du bouton */
-    right: 0; /* Aligne le menu à droite du conteneur parent */
-    background-color: var(--color-header-bg); /* Fond du menu */
-    border: 1px solid var(--color-border); /* Bordure du menu */
-    border-radius: 5px; /* Coins arrondis */
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Ombre portée pour un effet de profondeur */
-    min-width: 150px; /* Largeur minimale du menu */
-    z-index: 1000; /* Assure que le menu est au-dessus des autres éléments */
-    padding: 10px 0; /* Remplissage interne */
-    display: none;  /* Caché par défaut, contrôlé par JavaScript */
-}
-
-#header-menu ul {
-    list-style: none; /* Supprime les puces de liste */
-    padding: 0; /* Supprime le remplissage par défaut de la liste */
-    margin: 0; /* Supprime les marges par défaut de la liste */
-}
-
-#header-menu ul li a {
-    display: block; /* Rend les liens cliquables sur toute la largeur */
-    padding: 8px 15px; /* Remplissage interne des liens */
-    text-decoration: none; /* Supprime le soulignement des liens */
-    color: var(--color-text); /* Couleur du texte des liens */
-    white-space: nowrap; /* Empêche le texte de passer à la ligne */
-}
-
-#header-menu ul li a:hover {
-    background-color: var(--color-background); /* Changement de couleur au survol */
+    position: absolute;
+    top: 120%;
+    right: 0;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    min-width: 160px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    display: none;
+    z-index: 1000;
 }
 
 #header-menu.menu-open {
-    display: block; /* Affiche le menu lorsque la classe 'menu-open' est ajoutée par JS */
+    display: block;
 }
 
-/* Styles pour la barre de titre de page (ex: "Mes tâches" et bouton "Créer") */
-.page-title-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 1.5rem;
-    margin-bottom: 1rem;
-}
-
-.page-title-bar h2 {
+#header-menu ul {
+    list-style: none;
     margin: 0;
+    padding: 8px 0;
 }
 
-/*
- * Styles généraux des boutons
- * Rôle : Définir l'apparence de base de tous les boutons.
- */
+#header-menu li a {
+    display: block;
+    padding: 10px 16px;
+    text-decoration: none;
+    color: var(--color-text);
+}
+
+#header-menu li a:hover {
+    background-color: var(--color-background);
+}
+
+/* =========================================================
+   Boutons
+   ========================================================= */
+
 button {
-    padding: 10px 15px; /* Remplissage interne */
-    border: none; /* Supprime la bordure par défaut */
-    border-radius: 5px; /* Coins arrondis */
-    cursor: pointer; /* Change le curseur en pointeur au survol */
-    font-weight: bold; /* Texte en gras */
-    transition: background-color 0.3s ease; /* Transition douce pour le changement de couleur de fond */
-}
-
-button:hover {
-    opacity: 0.9; /* Légère opacité au survol */
-}
-
-button.green {
-    background-color: var(--color-button-green);
-    color: white;
-}
-
-button.red {
-    background-color: var(--color-button-red);
-    color: white;
-}
-
-button.blue-gray {
-    background-color: var(--color-button-blue-gray);
-    color: white;
-}
-
-/*
- * Styles des éléments de formulaire
- * Rôle : Assurer une apparence cohérente pour les champs de saisie et les sélecteurs.
- */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="date"],
-select,
-textarea {
-    width: 100%; /* Prend toute la largeur disponible */
-    padding: 10px; /* Remplissage interne */
-    margin-bottom: 10px; /* Marge inférieure */
-    border: 1px solid var(--color-border); /* Bordure */
-    border-radius: 5px; /* Coins arrondis */
-    box-sizing: border-box; /* Inclut le padding dans la largeur */
-}
-
-/*
- * Styles spécifiques aux cartes de tâches
- * Rôle : Définir l'apparence des éléments individuels représentant une tâche.
- */
-.task-card {
-    background-color: var(--color-header-bg); /* Fond blanc pour les cartes */
-    border: 1px solid var(--color-border); /* Bordure */
-    border-radius: 8px; /* Coins arrondis */
-    margin-bottom: 10px; /* Marge inférieure entre les cartes */
-    overflow: hidden; /* Assure que le contenu respecte les coins arrondis */
-}
-
-.task-header {
-    display: flex; /* Utilise Flexbox pour l'alignement des éléments */
-    align-items: center; /* Centre les éléments verticalement */
-    padding: 15px; /* Remplissage interne */
-    cursor: pointer; /* Change le curseur en pointeur pour indiquer qu'il est cliquable */
-    background-color: #F9FAFB; /* Fond légèrement différent pour l'en-tête */
-    border-bottom: 1px solid var(--color-border); /* Bordure inférieure */
-}
-
-.task-header:hover {
-    background-color: #F3F4F6; /* Changement de couleur au survol */
-}
-
-.task-status {
-    width: 12px; /* Largeur du cercle de statut */
-    height: 12px; /* Hauteur du cercle de statut */
-    border-radius: 50%; /* Rend l'élément circulaire */
-    margin-right: 10px; /* Marge à droite */
-    flex-shrink: 0; /* Empêche le cercle de rétrécir */
-}
-
-.task-name {
-    font-weight: bold; /* Texte en gras */
-    flex-grow: 1; /* Permet au nom de la tâche de prendre l'espace disponible */
-}
-
-.task-details {
-    padding: 15px; /* Remplissage interne */
-    border-top: 1px solid var(--color-border); /* Bordure supérieure */
-    display: none; /* Caché par défaut, contrôlé par JavaScript */
-}
-
-.task-details p {
-    margin: 5px 0; /* Marges verticales pour les paragraphes de détails */
-}
-
-.task-details button {
-    margin-right: 5px; /* Marge à droite entre les boutons */
-    margin-top: 10px; /* Marge supérieure pour les boutons */
-}
-
-/*
- * Styles de la section des filtres
- * Rôle : Définir l'apparence du bloc de filtres et de tri.
- */
-.filters {
-    background-color: var(--color-header-bg); /* Fond blanc */
-    border: 1px solid var(--color-border); /* Bordure */
-    border-radius: 8px; /* Coins arrondis */
-    padding: 15px; /* Remplissage interne */
-    margin-top: 20px; /* Marge supérieure */
-    margin-bottom: 20px; /* Marge inférieure */
-}
-
-.filters h3 {
-    margin-top: 0; /* Supprime la marge supérieure par défaut du titre */
-    margin-bottom: 15px; /* Marge inférieure */
-    color: var(--color-text); /* Couleur du texte */
-}
-
-.filter-grid {
-    display: grid;
-    grid-template-columns: 1fr; /* 1 colonne par défaut pour mobile */
-    gap: 1rem;
-}
-
-.filter-grid > div {
-    display: flex;
-    flex-direction: column;
-}
-
-.filter-grid label {
-    margin-bottom: 5px;
+    padding: 10px 15px;
+    border-radius: 6px;
+    border: none;
     font-weight: bold;
-    font-size: 0.9em;
-}
-
-.filter-checkbox-container {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-self: start;
-    padding-top: 1.5rem; /* Aligne avec les autres labels */
-}
-
-.filter-checkbox-container input {
-    margin: 0 0.5rem 0 0;
-    width: auto; /* Annule la largeur de 100% des autres inputs */
-}
-
-/*
- * Ajustements responsives
- * Rôle : Adapter la mise en page pour différentes tailles d'écran (tablettes, ordinateurs de bureau).
- * Pourquoi préférable : Assure une expérience utilisateur optimale sur tous les appareils.
- */
-@media (min-width: 768px) {
-    .container {
-        max-width: 720px; /* Largeur maximale pour les tablettes */
-    }
-}
-
-@media (min-width: 1024px) {
-    .container {
-        max-width: 960px; /* Largeur maximale pour les ordinateurs de bureau */
-    }
-
-    .filter-grid {
-        grid-template-columns: repeat(4, 1fr); /* 4 colonnes sur les grands écrans */
-    }
-
-    .filter-checkbox-container {
-        padding-top: 1.5rem; /* Ajustement pour l'alignement vertical */
-    }
-}
-
-/*
- * Ajustement pour les très grands écrans.
- * Rôle : Limiter la largeur du contenu principal pour une meilleure lisibilité
- * sur les écrans de très haute résolution, évitant un étirement excessif.
- * Justification : Une largeur de ligne trop importante peut rendre le texte difficile à lire.
- */
-@media (min-width: 1200px) {
-    .container {
-        max-width: 1200px; /* Limite la largeur maximale du conteneur sur les très grands écrans */
-    }
-}
-
-/* Styles spécifiques pour les boutons d'action des tâches (édition, statut, suppression) */
-.task-details button {
-    width: 32px; /* Largeur fixe pour rendre le bouton carré */
-    height: 32px; /* Hauteur fixe pour rendre le bouton carré */
-    display: inline-flex; /* Utilise flexbox pour centrer l'icône */
-    justify-content: center; /* Centre horizontalement */
-    align-items: center; /* Centre verticalement */
-    padding: 0; /* Supprime le padding par défaut pour un contrôle total de la taille */
-    margin-right: 5px; /* Marge à droite entre les boutons */
-    margin-top: 10px; /* Marge supérieure pour les boutons */
-    flex-shrink: 0; /* Empêche le bouton de rétrécir */
-}
-
-.task-details button svg {
-    width: 20px; /* Assure que l'icône SVG prend la taille définie */
-    height: 20px; /* Assure que l'icône SVG prend la taille définie */
-}
-/* Styles pour le champ de description (textarea) */
-textarea {
-    resize: vertical; /* Permet le redimensionnement vertical */
-    min-height: 60px; /* Hauteur minimale pour 3 lignes (environ 20px par ligne) */
-    max-height: 200px; /* Hauteur maximale pour 10 lignes */
-    overflow-y: auto; /* Ajoute un ascenseur si le contenu dépasse la hauteur maximale */
-}
+    cursor: pointer;
