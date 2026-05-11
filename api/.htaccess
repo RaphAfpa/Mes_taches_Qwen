@@ -1,10 +1,30 @@
 # api/.htaccess
+# ===================================================
+# Rôle :
+# - Front controller de l’API
+# - Routage vers api/index.php
+# - Protection minimale des fichiers internes
+# ===================================================
+
 RewriteEngine On
 RewriteBase /api/
 
-# Exclure les fichiers et répertoires existants de la réécriture
+# Sécurité : empêcher l’indexation des répertoires
+Options -Indexes
+
+# Ne pas réécrire les fichiers ou dossiers existants
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 
-# Réécrire toutes les requêtes vers index.php (dans le dossier api/)
-RewriteRule ^(.*)$ index.php [QSA,L]
+# Toutes les routes API passent par index.php
+RewriteRule ^ index.php [QSA,L]
+
+# Bloquer l’accès direct aux fichiers PHP, ini, log
+<FilesMatch "\.(php|ini|log)$">
+    Require all denied
+</FilesMatch>
+
+# Autoriser explicitement le point d’entrée API
+<FilesMatch "^index\.php$">
+    Require all granted
+</FilesMatch>
