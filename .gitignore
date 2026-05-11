@@ -4,6 +4,9 @@ Thumbs.db
 
 # Logs
 *.log
+php_error.log
+debug-login.log
+logs/
 
 # Dépendances éventuelles
 node_modules/

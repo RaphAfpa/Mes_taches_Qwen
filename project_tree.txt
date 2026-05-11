@@ -3,30 +3,24 @@ MES_TACHES_QWEN/
 ├── api/
 │   ├── .htaccess
 │   ├── index.php
-│   ├── php.ini
-│   ├── debug-login.log
-│   ├── php_error.log
-│   │
-│   ├── controllers/
-│   │   ├── Task.php
-│   │   ├── TaskController.php
-│   │   └── UserController.php
 │   │
 │   ├── core/
 │   │   └── router.php
+│   │
+│   ├── controllers/
+│   │   ├── TaskController.php
+│   │   └── UserController.php
 │   │
 │   ├── models/
 │   │   ├── Database.php
 │   │   ├── Task.php
 │   │   └── User.php
-│   │
-│   └── routes/
-│       └── task_routes.php
-│
-├── cgi-bin/
 │
 ├── css/
 │   └── style.css
+│
+├── js/
+│   └── app.js
 │
 ├── images/
 │   └── MesTaches.svg
@@ -35,14 +29,6 @@ MES_TACHES_QWEN/
 │   ├── header_commun.php
 │   └── footer_commun.php
 │
-├── js/
-│   ├── app.js
-│   └── jour.js
-│
-├── logs/
-│   └── php_error.log
-│
-├── creationtache.php
 ├── index.php
 ├── taches.php
 ├── profil.php
