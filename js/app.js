@@ -1,4 +1,16 @@
-// js/app.js
+/**
+ * js/app.js
+ *
+ * Rôle :
+ * - Gérer les appels API (avec CSRF)
+ * - Orchestrer l’affichage des tâches
+ * - Implémenter l’accordéon des tâches (UX + accessibilité)
+ *
+ * Principes stricts :
+ * - Le HTML définit la structure (voir taches.php)
+ * - Le JS NE DEVINE RIEN : il peuple et anime seulement
+ * - Accessibilité clavier et ARIA obligatoires
+ */
 
 /* ========================
    CSRF
@@ -7,7 +19,7 @@
 let CSRF_TOKEN = null;
 
 /* ========================
-   API CLIENT
+   CLIENT API UNIFIÉ
    ======================== */
 
 async function apiFetch(url, options = {}) {
@@ -18,7 +30,7 @@ async function apiFetch(url, options = {}) {
         ...(options.headers || {})
     };
 
-    // ✅ Injection du token CSRF pour les requêtes mutatives
+    // Injection automatique du token CSRF pour les mutations
     if (['POST', 'PUT', 'DELETE'].includes(method)) {
         if (!CSRF_TOKEN) {
             throw new Error('CSRF token manquant');
@@ -69,7 +81,27 @@ async function logout() {
 }
 
 /* ========================
-   TÂCHES
+   CHARGEMENT DU PROFIL (CSRF)
+   ======================== */
+
+/**
+ * Rôle :
+ * - Récupérer les infos utilisateur
+ * - Initialiser le token CSRF côté frontend
+ */
+async function loadProfile() {
+    const user = await apiFetch('/api/profile');
+
+    CSRF_TOKEN = user.data.csrf;
+
+    const pseudo = document.getElementById('user-pseudo');
+    if (pseudo) {
+        pseudo.textContent = user.data.username;
+    }
+}
+
+/* ========================
+   TÂCHES : RÉCUPÉRATION
    ======================== */
 
 async function loadTasks() {
@@ -83,34 +115,103 @@ async function loadTasks() {
     renderTasks(result.data || []);
 }
 
+/* ========================
+   ACCORDÉON DES TÂCHES (POINT CLÉ)
+   ======================== */
+
+/**
+ * Rôle :
+ * - Générer la structure de l’accordéon EXACTEMENT comme définie en HTML
+ * - Gérer :
+ *   - clic souris
+ *   - navigation clavier (Enter / Espace)
+ *   - aria-expanded / aria-controls
+ */
 function renderTasks(tasks) {
     const container = document.getElementById('task-list');
-    container.innerHTML = '<h3>Liste des tâches</h3>';
+    if (!container) return;
 
+    // Nettoyage du contenu (garde le titre)
+    container.innerHTML = '<h3 id="task-list-title">Liste des tâches</h3>';
+
+    // État vide UX
     if (!tasks.length) {
-        container.innerHTML += '<p>Aucune tâche.</p>';
+        const empty = document.createElement('p');
+        empty.className = 'empty-state';
+        empty.textContent =
+            'Aucune tâche pour l’instant. Utilisez « Créer une tâche ».';
+        container.appendChild(empty);
         return;
     }
 
-    tasks.forEach(task => {
-        const div = document.createElement('div');
-        div.className = 'task-card';
-        div.innerHTML = `
-            <div class="task-header">${task.name} (${task.status})</div>
-            <div class="task-details" hidden>
-                <p>${task.description || ''}</p>
-                <button class="delete-task" data-id="${task.id}">Supprimer</button>
-            </div>
-        `;
+    tasks.forEach((task, index) => {
+        const article = document.createElement('article');
+        article.className = 'task-item';
 
-        div.querySelector('.task-header').onclick = () => {
-            div.querySelector('.task-details').toggleAttribute('hidden');
+        const headerId = `task-header-${task.id}`;
+        const detailsId = `task-details-${task.id}`;
+
+        // Bouton d’en‑tête (contrôleur de l’accordéon)
+        const headerBtn = document.createElement('button');
+        headerBtn.className = 'task-header';
+        headerBtn.id = headerId;
+        headerBtn.type = 'button';
+        headerBtn.setAttribute('aria-expanded', 'false');
+        headerBtn.setAttribute('aria-controls', detailsId);
+        headerBtn.textContent = `${task.name} (${task.status})`;
+
+        // Zone de détails
+        const details = document.createElement('div');
+        details.className = 'task-details';
+        details.id = detailsId;
+        details.setAttribute('role', 'region');
+        details.setAttribute('aria-labelledby', headerId);
+        details.hidden = true;
+
+        const desc = document.createElement('p');
+        desc.textContent = task.description || 'Aucune description';
+
+        // Actions (exemple minimal)
+        const actions = document.createElement('div');
+        actions.className = 'task-actions';
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.textContent = 'Supprimer';
+        deleteBtn.addEventListener('click', () => deleteTask(task.id));
+
+        actions.appendChild(deleteBtn);
+        details.appendChild(desc);
+        details.appendChild(actions);
+
+        /**
+         * Gestion accordéon :
+         * - clic souris
+         * - clavier (Enter / Espace)
+         */
+        const toggle = () => {
+            const isOpen = headerBtn.getAttribute('aria-expanded') === 'true';
+            headerBtn.setAttribute('aria-expanded', String(!isOpen));
+            details.hidden = isOpen;
         };
 
-        div.querySelector('.delete-task').onclick = () => deleteTask(task.id);
-        container.appendChild(div);
+        headerBtn.addEventListener('click', toggle);
+        headerBtn.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggle();
+            }
+        });
+
+        article.appendChild(headerBtn);
+        article.appendChild(details);
+        container.appendChild(article);
     });
 }
+
+/* ========================
+   CRUD TÂCHES
+   ======================== */
 
 async function createTask(event) {
     event.preventDefault();
@@ -143,21 +244,7 @@ async function deleteTask(id) {
 }
 
 /* ========================
-   PROFIL UTILISATEUR
-   ======================== */
-
-async function loadProfile() {
-    const user = await apiFetch('/api/profile');
-
-    // ✅ Récupération du token CSRF depuis l’API
-    CSRF_TOKEN = user.data.csrf;
-
-    document.getElementById('profile-username').textContent = user.data.username;
-    document.getElementById('profile-email').textContent = user.data.email;
-}
-
-/* ========================
-   INIT
+   INIT GLOBALE
    ======================== */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -172,7 +259,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (document.getElementById('task-form')) {
         document.getElementById('task-form').onsubmit = createTask;
-        await loadProfile();   // ✅ charge aussi le CSRF
+
+        // Initialisation requise :
+        // 1. profil (CSRF)
+        // 2. tâches
+        await loadProfile();
         loadTasks();
 
         document.getElementById('category-filter')?.addEventListener('change', loadTasks);
