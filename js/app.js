@@ -551,7 +551,7 @@ function renderTasks(tasks) {
     if (!tasks.length) {
         list.insertAdjacentHTML(
             'beforeend',
-            `<p class="empty-state">
+            `<p class="empty-state etat-vide">
                 Aucune tâche pour l’instant.
                 Utilisez « Créer une tâche » pour commencer.
              </p>`
@@ -563,7 +563,7 @@ function renderTasks(tasks) {
         const id = `task-${task.id}`;
 
         const article = document.createElement('article');
-        article.className = 'task-item';
+        article.className = 'task-item tache';
 
         /*
             Le bandeau titre est composé de deux boutons séparés :
@@ -574,10 +574,10 @@ function renderTasks(tasks) {
             ce qui serait invalide en HTML et problématique pour l’accessibilité.
         */
         const headerRow = document.createElement('div');
-        headerRow.className = 'task-header-row';
+        headerRow.className = 'task-header-row ligne-entete-tache';
 
         const header = document.createElement('button');
-        header.className = 'task-header';
+        header.className = 'task-header tache-entete';
         header.id = `${id}-header`;
         header.type = 'button';
         header.setAttribute('aria-expanded', 'false');
@@ -595,7 +595,7 @@ function renderTasks(tasks) {
         if (task.status !== 'Terminée') {
             const completeButton = document.createElement('button');
             completeButton.type = 'button';
-            completeButton.className = 'complete-task-button';
+            completeButton.className = 'complete-task-button bouton-terminer';
             completeButton.setAttribute('aria-label', 'Marquer la tâche comme terminée');
             completeButton.setAttribute('title', 'Marquer comme terminée');
             completeButton.textContent = '✓';
@@ -608,7 +608,7 @@ function renderTasks(tasks) {
         }
 
         const details = document.createElement('div');
-        details.className = 'task-details';
+        details.className = 'task-details tache-details';
         details.id = `${id}-details`;
         details.setAttribute('role', 'region');
         details.setAttribute('aria-labelledby', `${id}-header`);
@@ -620,10 +620,10 @@ function renderTasks(tasks) {
         details.appendChild(createDetailParagraph('Échéance', formatDisplayDate(task.due_date)));
 
         const actions = document.createElement('div');
-        actions.className = 'task-actions';
+        actions.className = 'task-actions actions-tache';
 
         const editLink = document.createElement('a');
-        editLink.className = 'edit-task-button';
+        editLink.className = 'edit-task-button bouton-modifier';
         editLink.href = `modif_tache.php?id=${encodeURIComponent(task.id)}`;
         editLink.setAttribute('aria-label', 'Modifier la tâche');
         editLink.setAttribute('title', 'Modifier');
@@ -631,7 +631,7 @@ function renderTasks(tasks) {
 
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
-        deleteButton.className = 'delete-task-button';
+        deleteButton.className = 'delete-task-button bouton-supprimer';
         deleteButton.setAttribute('aria-label', 'Supprimer la tâche');
         deleteButton.setAttribute('title', 'Supprimer');
         deleteButton.dataset.taskId = String(task.id);
@@ -662,14 +662,14 @@ function renderTasks(tasks) {
  */
 function openDeleteConfirm(taskId) {
     const overlay = document.createElement('div');
-    overlay.className = 'confirm-overlay';
+    overlay.className = 'confirm-overlay fenetre-confirmation';
 
     overlay.innerHTML = `
-        <div class="confirm-box" role="dialog" aria-modal="true">
+        <div class="confirm-box boite-confirmation" role="dialog" aria-modal="true">
             <p>Supprimer ?</p>
-            <div class="confirm-actions">
-                <button type="button" class="confirm-yes red">Oui</button>
-                <button type="button" class="confirm-no blue-gray">Non</button>
+            <div class="confirm-actions actions-confirmation">
+                <button type="button" class="confirm-yes red rouge">Oui</button>
+                <button type="button" class="confirm-no blue-gray bleu-gris">Non</button>
             </div>
         </div>
     `;
