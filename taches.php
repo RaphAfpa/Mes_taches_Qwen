@@ -25,7 +25,7 @@ include 'includes/header_commun.php';
     - déconnexion
 -->
 <div id="header-wrapper">
-    <header class="container" role="banner">
+    <header class="container conteneur" role="banner">
 
         <!-- Logo cliquable : retour à la liste des tâches -->
         <a href="taches.php" id="logo-link">
@@ -55,7 +55,7 @@ include 'includes/header_commun.php';
                 - aria-expanded sera géré par JS
             -->
             <button
-                class="blue-gray"
+                class="blue-gray bleu-gris"
                 id="menu-button"
                 aria-haspopup="true"
                 aria-expanded="false"
@@ -88,7 +88,7 @@ include 'includes/header_commun.php';
     Contenu principal de la page.
     Rôle : toutes les fonctionnalités métier liées aux tâches.
 -->
-<main class="container" role="main">
+<main class="container conteneur" role="main">
 
     <div id="main-content-area">
 
@@ -109,7 +109,7 @@ include 'includes/header_commun.php';
             -->
             <a
                 href="creer_tache.php"
-                class="green action-link"
+                class="green action-link vert lien-action"
                 id="create-task-button"
             >
                 Créer une tâche
@@ -124,14 +124,14 @@ include 'includes/header_commun.php';
             - labels explicitement associés
         -->
 <section
-    class="filters"
+    class="filters filtres"
     aria-labelledby="filters-title"
 >
     <h3 id="filters-title">Filtres et tri</h3>
 
-    <div class="filters-grid">
+    <div class="filters-grid filtres-grille">
 
-        <div class="filter-item">
+        <div class="filter-item filtre-element">
             <label for="category-filter">Catégorie</label>
             <select id="category-filter">
                 <option value="all">Toutes</option>
@@ -141,7 +141,7 @@ include 'includes/header_commun.php';
             </select>
         </div>
 
-        <div class="filter-item">
+        <div class="filter-item filtre-element">
             <label for="status-filter">Statut</label>
             <select id="status-filter">
                 <option value="all">Tous</option>
@@ -153,7 +153,7 @@ include 'includes/header_commun.php';
             </select>
         </div>
 
-        <div class="filter-item">
+        <div class="filter-item filtre-element">
             <label for="sort-filter">Trier par</label>
             <select id="sort-filter">
                 <option value="created_at DESC">Création (récent)</option>
@@ -188,7 +188,7 @@ include 'includes/header_commun.php';
                 - message clair pour l’utilisateur
                 Sera remplacé dynamiquement par JS si des tâches existent.
             -->
-            <p class="empty-state">
+            <p class="empty-state etat-vide">
                 Aucune tâche pour l’instant.
                 Utilisez « Créer une tâche » pour commencer.
             </p>
