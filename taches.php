@@ -96,13 +96,24 @@ include 'includes/header_commun.php';
         <div class="page-title-bar">
             <h2 id="tasks-page-title">Mes tâches</h2>
 
-            <!-- Action principale -->
-            <button
-                class="green"
+            <!--
+                Action principale : création d’une tâche.
+
+                Rôle :
+                - envoyer l’utilisateur vers la page dédiée creer_tache.php ;
+                - éviter d’intégrer le formulaire de création dans taches.php ;
+                - préserver la responsabilité unique de cette page : afficher et filtrer les tâches.
+
+                Remarque :
+                - La création elle-même sera gérée par creer_tache.php + js/app.js + POST /api/tasks.
+            -->
+            <a
+                href="creer_tache.php"
+                class="green action-link"
                 id="create-task-button"
             >
                 Créer une tâche
-            </button>
+            </a>
         </div>
 
         <!--
@@ -134,6 +145,7 @@ include 'includes/header_commun.php';
                     <label for="status-filter">Statut</label>
                     <select id="status-filter">
                         <option value="all">Tous</option>
+                        <option value="À planifier">À planifier</option>
                         <option value="Prévue">Prévue</option>
                         <option value="En cours">En cours</option>
                         <option value="Dépassée">Dépassée</option>

@@ -1,6 +1,15 @@
 <?php
 // api/controllers/UserController.php
 
+/**
+ * UserController
+ *
+ * Rôle :
+ * - Gérer l’authentification (login / register / logout)
+ * - Gérer le profil utilisateur
+ * - Appliquer les règles de sécurité (sessions, CSRF)
+ */
+
 class UserController
 {
     private PDO $db;
@@ -47,15 +56,18 @@ class UserController
     }
 
     /**
-     * Vérifie le token CSRF pour les actions mutatives.
+     * Vérifie le token CSRF (insensible à la casse des headers).
      */
     private function requireCsrfToken(): void
     {
-        $headers = getallheaders();
-        $token = $headers['X-CSRF-Token'] ?? '';
+        $this->startSession();
+
+        $headers = array_change_key_case(getallheaders(), CASE_LOWER);
+        $token = $headers['x-csrf-token'] ?? '';
 
         if (
             empty($_SESSION['csrf_token']) ||
+            empty($token) ||
             !hash_equals($_SESSION['csrf_token'], $token)
         ) {
             $this->sendResponse(false, null, 'CSRF invalide', 403);
@@ -78,8 +90,7 @@ class UserController
         $stmt = $this->db->prepare(
             'SELECT id, username, password FROM users WHERE username = :username LIMIT 1'
         );
-        $stmt->bindParam(':username', $data['username']);
-        $stmt->execute();
+        $stmt->execute(['username' => $data['username']]);
 
         if ($stmt->rowCount() === 0) {
             $this->sendResponse(false, null, 'Identifiants invalides', 401);
@@ -91,10 +102,8 @@ class UserController
             $this->sendResponse(false, null, 'Identifiants invalides', 401);
         }
 
-        // Sécurité session
         session_regenerate_id(true);
 
-        // Génération du token CSRF (une fois par session)
         if (empty($_SESSION['csrf_token'])) {
             $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         }
@@ -108,9 +117,43 @@ class UserController
         ], 'Connexion réussie');
     }
 
-    public function logout(): void
+    public function register(): void
     {
         $this->startSession();
+        $data = $this->getJsonBody();
+
+        if (
+            empty($data['username']) ||
+            empty($data['email']) ||
+            empty($data['password'])
+        ) {
+            $this->sendResponse(false, null, 'Données incomplètes', 400);
+        }
+
+        if ($this->user->findByUsername($data['username'])) {
+            $this->sendResponse(false, null, 'Nom d’utilisateur déjà utilisé', 409);
+        }
+
+        if ($this->user->findByEmail($data['email'])) {
+            $this->sendResponse(false, null, 'Adresse email déjà utilisée', 409);
+        }
+
+        $this->user->username = $data['username'];
+        $this->user->email    = $data['email'];
+        $this->user->password = $data['password'];
+
+        if (!$this->user->create()) {
+            $this->sendResponse(false, null, 'Erreur serveur lors de la création du compte', 500);
+        }
+
+        $this->sendResponse(true, null, 'Compte créé avec succès');
+    }
+
+    /**
+     * Déconnexion utilisateur (CSRF requis).
+     */
+    public function logout(): void
+    {
         $this->requireCsrfToken();
 
         $_SESSION = [];
@@ -137,7 +180,7 @@ class UserController
        PROFIL UTILISATEUR
        ======================== */
 
-    public function getProfile(): void
+    public function profile(): void
     {
         $this->startSession();
 
@@ -146,9 +189,61 @@ class UserController
         }
 
         $userData = $this->user->findById($_SESSION['user_id']);
+
         if (!$userData) {
             $this->sendResponse(false, null, 'Utilisateur introuvable', 404);
         }
 
         $this->sendResponse(true, [
             'id'       => $userData['id'],
+            'username' => $userData['username'],
+            'email'    => $userData['email'],
+            'csrf'     => $_SESSION['csrf_token']
+        ]);
+    }
+
+    public function updateProfile(): void
+    {
+        $this->requireCsrfToken();
+
+        if (empty($_SESSION['user_id'])) {
+            $this->sendResponse(false, null, 'Non autorisé', 401);
+        }
+
+        $data = $this->getJsonBody();
+
+        $this->user->id = $_SESSION['user_id'];
+        $this->user->username = $data['username'] ?? $this->user->username;
+        $this->user->email    = $data['email'] ?? $this->user->email;
+
+        if (!empty($data['password'])) {
+            $this->user->password = $data['password'];
+        }
+
+        if (!$this->user->update()) {
+            $this->sendResponse(false, null, 'Échec de la mise à jour', 500);
+        }
+
+        $this->sendResponse(true, null, 'Profil mis à jour');
+    }
+
+    public function deleteAccount(): void
+    {
+        $this->requireCsrfToken();
+
+        if (empty($_SESSION['user_id'])) {
+            $this->sendResponse(false, null, 'Non autorisé', 401);
+        }
+
+        $this->user->id = $_SESSION['user_id'];
+
+        if (!$this->user->delete()) {
+            $this->sendResponse(false, null, 'Échec de la suppression', 500);
+        }
+
+        $_SESSION = [];
+        session_destroy();
+
+        $this->sendResponse(true, null, 'Compte supprimé');
+    }
+}

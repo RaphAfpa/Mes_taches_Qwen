@@ -1,11 +1,69 @@
 <?php
 // api/index.php
 
-// --- CORS CONFIGURATION ---------------------------------
+/**
+ * =====================================================
+ * FRONT CONTROLLER DE L’API
+ * =====================================================
+ *
+ * Rôle :
+ * - Point d’entrée unique de l’API
+ * - Initialisation de l’application
+ * - Déclaration des routes
+ * - Gestion globale des erreurs
+ *
+ * GARANTIE :
+ * ➜ Aucune erreur PHP ne peut sortir en HTML
+ * ➜ L’API renvoie TOUJOURS du JSON
+ */
+
+/* =====================================================
+   CONFIGURATION PHP (SÉCURISÉE)
+   ===================================================== */
+
+// Afficher toutes les erreurs côté serveur
+error_reporting(E_ALL);
+
+// ❌ Ne JAMAIS afficher d’erreur HTML au client
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+
+// ✅ Journalisation uniquement
+ini_set('log_errors', '1');
+ini_set('error_log', __DIR__ . '/php_error.log');
+
+/* =====================================================
+   GESTION GLOBALE DES ERREURS PHP
+   ===================================================== */
+
+/**
+ * Capture TOUTES les erreurs fatales PHP
+ * (Error, Exception, TypeError, PDOException, etc.)
+ * et renvoie toujours du JSON valide.
+ */
+set_exception_handler(function (Throwable $e): void {
+    http_response_code(500);
+    header('Content-Type: application/json');
+
+    echo json_encode([
+        'success' => false,
+        'data'    => null,
+        'message' => 'Erreur serveur interne'
+    ]);
+
+    // Log détaillé côté serveur
+    error_log('[API ERROR] ' . $e->getMessage());
+    error_log($e->getTraceAsString());
+
+    exit;
+});
+
+/* =====================================================
+   CONFIGURATION CORS
+   ===================================================== */
 
 $allowedOrigins = [
-    'https://ton-domaine.fr',
-    'https://www.ton-domaine.fr'
+    'https://tdl.afpa21.fr',
 ];
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
@@ -16,24 +74,30 @@ if (in_array($origin, $allowedOrigins, true)) {
 }
 
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token');
 
-// Préflight
+// Préflight CORS
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
 
-// --- BOOTSTRAP ------------------------------------------
+/* =====================================================
+   BOOTSTRAP DE L’APPLICATION
+   ===================================================== */
 
-require_once 'core/router.php';
-require_once 'models/Database.php';
-require_once 'models/User.php';
-require_once 'models/Task.php';
-require_once 'controllers/UserController.php';
-require_once 'controllers/TaskController.php';
+require_once __DIR__ . '/core/router.php';
 
-// --- DEPENDENCIES ---------------------------------------
+require_once __DIR__ . '/models/Database.php';
+require_once __DIR__ . '/models/User.php';
+require_once __DIR__ . '/models/Task.php';
+
+require_once __DIR__ . '/controllers/UserController.php';
+require_once __DIR__ . '/controllers/TaskController.php';
+
+/* =====================================================
+   INITIALISATION DES DÉPENDANCES
+   ===================================================== */
 
 $db = (new Database())->getConnection();
 
@@ -42,20 +106,28 @@ $taskController = new TaskController($db);
 
 $router = new Router();
 
-// --- ROUTES ---------------------------------------------
+/* =====================================================
+   DÉCLARATION DES ROUTES
+   ===================================================== */
 
-$router->addRoute('POST', '/login', [$userController, 'login']);
+// Authentification
+$router->addRoute('POST', '/login',    [$userController, 'login']);
 $router->addRoute('POST', '/register', [$userController, 'register']);
-$router->addRoute('POST', '/logout', [$userController, 'logout']); // ✅ POST
-$router->addRoute('GET',  '/profile', [$userController, 'profile']);
-$router->addRoute('PUT',  '/profile', [$userController, 'updateProfile']);
+$router->addRoute('POST', '/logout',   [$userController, 'logout']);
+
+// Profil utilisateur
+$router->addRoute('GET',    '/profile', [$userController, 'profile']);
+$router->addRoute('PUT',    '/profile', [$userController, 'updateProfile']);
 $router->addRoute('DELETE', '/profile', [$userController, 'deleteAccount']);
 
-$router->addRoute('GET',  '/tasks', [$taskController, 'getTasks']);
-$router->addRoute('POST', '/tasks', [$taskController, 'createTask']);
-$router->addRoute('PUT',  '/tasks', [$taskController, 'updateTask']);
+// Tâches
+$router->addRoute('GET',    '/tasks', [$taskController, 'getTasks']);
+$router->addRoute('POST',   '/tasks', [$taskController, 'createTask']);
+$router->addRoute('PUT',    '/tasks', [$taskController, 'updateTask']);
 $router->addRoute('DELETE', '/tasks', [$taskController, 'deleteTask']);
 
-// --- DISPATCH -------------------------------------------
+/* =====================================================
+   DISPATCH FINAL
+   ===================================================== */
 
 $router->dispatch();

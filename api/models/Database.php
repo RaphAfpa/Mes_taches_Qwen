@@ -1,34 +1,36 @@
 <?php
 // api/models/Database.php
 
+/**
+ * Classe Database
+ *
+ * Rôle :
+ * - Fournir une connexion PDO unique et fiable
+ * - Être compatible avec un hébergement mutualisé
+ * - Ne jamais dépendre de variables d’environnement
+ */
+
 class Database
 {
-    private string $host;
-    private string $dbName;
-    private string $username;
-    private string $password;
+    /**
+     * ========================
+     * PARAMÈTRES DE CONNEXION
+     * ========================
+     *
+     * ⚠️ À REMPLACER par TES valeurs réelles
+     * (phpMyAdmin / panneau hébergeur)
+     */
+    private string $host     = 'localhost';
+    private string $dbName   = 'ezoi4288_mestaches';
+    private string $username = 'ezoi4288_MesTaches2';
+    private string $password = 'M;Kx9V-%ur-TjuZK';
 
     private ?PDO $conn = null;
 
     /**
-     * @throws RuntimeException
-     */
-    public function __construct()
-    {
-        $this->host     = getenv('DB_HOST') ?: 'localhost';
-        $this->dbName   = getenv('DB_NAME') ?: '';
-        $this->username = getenv('DB_USER') ?: '';
-        $this->password = getenv('DB_PASSWORD') ?: '';
-
-        if ($this->dbName === '' || $this->username === '' || $this->password === '') {
-            throw new RuntimeException(
-                'Configuration de base de données manquante (variables d’environnement)'
-            );
-        }
-    }
-
-    /**
-     * @throws RuntimeException
+     * Retourne une connexion PDO active
+     *
+     * @throws RuntimeException si la connexion échoue
      */
     public function getConnection(): PDO
     {
@@ -57,8 +59,13 @@ class Database
             return $this->conn;
 
         } catch (PDOException $e) {
-            error_log('[DB ERROR] ' . $e->getMessage());
-            throw new RuntimeException('Erreur de connexion à la base de données.');
+            // Log serveur uniquement
+            error_log('[DATABASE ERROR] ' . $e->getMessage());
+
+            // Message volontairement générique côté API
+            throw new RuntimeException(
+                'Connexion à la base de données impossible'
+            );
         }
     }
 }

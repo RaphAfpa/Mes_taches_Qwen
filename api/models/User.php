@@ -1,6 +1,15 @@
 <?php
 // api/models/User.php
 
+/**
+ * Modèle User
+ *
+ * Rôle :
+ * - Encapsuler tous les accès à la table `users`
+ * - Ne jamais déclencher d’erreur fatale PHP
+ * - Retourner true / false selon le succès des opérations
+ */
+
 class User
 {
     private PDO $db;
@@ -21,24 +30,32 @@ class User
        CREATE
        ======================== */
 
+    /**
+     * Crée un nouvel utilisateur.
+     * Retourne true si succès, false sinon.
+     * Toute erreur SQL est capturée pour éviter une erreur 500.
+     */
     public function create(): bool
     {
-        if ($this->existsByUsername($this->username) || $this->existsByEmail($this->email)) {
+        try {
+            $query = "
+                INSERT INTO {$this->table} (username, email, password)
+                VALUES (:username, :email, :password)
+            ";
+
+            $stmt = $this->db->prepare($query);
+
+            return $stmt->execute([
+                'username' => $this->username,
+                'email'    => $this->email,
+                'password' => password_hash($this->password, PASSWORD_BCRYPT),
+            ]);
+
+        } catch (PDOException $e) {
+            // Journalisation uniquement (ne jamais afficher à l'utilisateur)
+            error_log('[USER CREATE ERROR] ' . $e->getMessage());
             return false;
         }
-
-        $query = "
-            INSERT INTO {$this->table} (username, email, password)
-            VALUES (:username, :email, :password)
-        ";
-
-        $stmt = $this->db->prepare($query);
-
-        return $stmt->execute([
-            'username' => $this->username,
-            'email'    => $this->email,
-            'password' => password_hash($this->password, PASSWORD_BCRYPT),
-        ]);
     }
 
     /* ========================
@@ -47,47 +64,65 @@ class User
 
     public function findById(int $id): ?array
     {
-        $stmt = $this->db->prepare(
-            "SELECT id, username, email, password, created_at
-             FROM {$this->table}
-             WHERE id = :id
-             LIMIT 1"
-        );
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT id, username, email, password, created_at
+                 FROM {$this->table}
+                 WHERE id = :id
+                 LIMIT 1"
+            );
 
-        $stmt->execute(['id' => $id]);
+            $stmt->execute(['id' => $id]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $user ?: null;
+            return $user ?: null;
+
+        } catch (PDOException $e) {
+            error_log('[USER FIND BY ID ERROR] ' . $e->getMessage());
+            return null;
+        }
     }
 
     public function findByUsername(string $username): ?array
     {
-        $stmt = $this->db->prepare(
-            "SELECT id, username, email, password, created_at
-             FROM {$this->table}
-             WHERE username = :username
-             LIMIT 1"
-        );
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT id, username, email, password, created_at
+                 FROM {$this->table}
+                 WHERE username = :username
+                 LIMIT 1"
+            );
 
-        $stmt->execute(['username' => $username]);
+            $stmt->execute(['username' => $username]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $user ?: null;
+            return $user ?: null;
+
+        } catch (PDOException $e) {
+            error_log('[USER FIND BY USERNAME ERROR] ' . $e->getMessage());
+            return null;
+        }
     }
 
     public function findByEmail(string $email): ?array
     {
-        $stmt = $this->db->prepare(
-            "SELECT id, username, email, password, created_at
-             FROM {$this->table}
-             WHERE email = :email
-             LIMIT 1"
-        );
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT id, username, email, password, created_at
+                 FROM {$this->table}
+                 WHERE email = :email
+                 LIMIT 1"
+            );
 
-        $stmt->execute(['email' => $email]);
+            $stmt->execute(['email' => $email]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $user ?: null;
+            return $user ?: null;
+
+        } catch (PDOException $e) {
+            error_log('[USER FIND BY EMAIL ERROR] ' . $e->getMessage());
+            return null;
+        }
     }
 
     /* ========================
@@ -96,26 +131,32 @@ class User
 
     public function update(): bool
     {
-        $fields = [
-            'username' => $this->username,
-            'email'    => $this->email,
-            'id'       => $this->id
-        ];
+        try {
+            $fields = [
+                'username' => $this->username,
+                'email'    => $this->email,
+                'id'       => $this->id
+            ];
 
-        $query = "
-            UPDATE {$this->table}
-            SET username = :username, email = :email
-        ";
+            $query = "
+                UPDATE {$this->table}
+                SET username = :username, email = :email
+            ";
 
-        if (!empty($this->password)) {
-            $query .= ", password = :password";
-            $fields['password'] = password_hash($this->password, PASSWORD_BCRYPT);
+            if (!empty($this->password)) {
+                $query .= ", password = :password";
+                $fields['password'] = password_hash($this->password, PASSWORD_BCRYPT);
+            }
+
+            $query .= " WHERE id = :id";
+
+            $stmt = $this->db->prepare($query);
+            return $stmt->execute($fields);
+
+        } catch (PDOException $e) {
+            error_log('[USER UPDATE ERROR] ' . $e->getMessage());
+            return false;
         }
-
-        $query .= " WHERE id = :id";
-
-        $stmt = $this->db->prepare($query);
-        return $stmt->execute($fields);
     }
 
     /* ========================
@@ -124,34 +165,16 @@ class User
 
     public function delete(): bool
     {
-        $stmt = $this->db->prepare(
-            "DELETE FROM {$this->table} WHERE id = :id"
-        );
+        try {
+            $stmt = $this->db->prepare(
+                "DELETE FROM {$this->table} WHERE id = :id"
+            );
 
-        return $stmt->execute(['id' => $this->id]);
-    }
+            return $stmt->execute(['id' => $this->id]);
 
-    /* ========================
-       UTILITAIRES PRIVÉS
-       ======================== */
-
-    private function existsByUsername(string $username): bool
-    {
-        $stmt = $this->db->prepare(
-            "SELECT 1 FROM {$this->table} WHERE username = :username LIMIT 1"
-        );
-
-        $stmt->execute(['username' => $username]);
-        return (bool) $stmt->fetchColumn();
-    }
-
-    private function existsByEmail(string $email): bool
-    {
-        $stmt = $this->db->prepare(
-            "SELECT 1 FROM {$this->table} WHERE email = :email LIMIT 1"
-        );
-
-        $stmt->execute(['email' => $email]);
-        return (bool) $stmt->fetchColumn();
+        } catch (PDOException $e) {
+            error_log('[USER DELETE ERROR] ' . $e->getMessage());
+            return false;
+        }
     }
 }

@@ -1,6 +1,19 @@
 <?php
 // api/models/Task.php
 
+/**
+ * Modèle Task
+ *
+ * Rôle :
+ * - Représenter une tâche appartenant à un utilisateur
+ * - Encapsuler les opérations CRUD liées à la table `tasks`
+ * - Centraliser la règle métier de calcul automatique du statut
+ *
+ * Principe important :
+ * - Le contrôleur valide les données reçues depuis l’utilisateur
+ * - Le modèle calcule le statut à partir de dates déjà validées
+ * - Le modèle ne décide pas si une requête utilisateur est valide ou non
+ */
 class Task
 {
     private PDO $db;
@@ -25,6 +38,38 @@ class Task
        RÈGLE MÉTIER
        ======================== */
 
+    /**
+     * Calcule automatiquement le statut d’une tâche à partir des dates.
+     *
+     * Règles appliquées :
+     * 1. Si le statut courant est "Terminée", il est conservé.
+     *    Raison : "Terminée" est une action manuelle de l’utilisateur,
+     *    pas un état calculé automatiquement.
+     *
+     * 2. Si la date d’échéance est dépassée, le statut devient "Dépassée".
+     *    Raison : une tâche en retard doit être prioritaire sur les autres états,
+     *    même si aucune date de début n’est renseignée.
+     *
+     * 3. Si la date de début est absente, le statut devient "À planifier".
+     *    Raison : la tâche a une échéance, mais aucun début n’a été défini.
+     *
+     * 4. Si la date de début est dans le futur, le statut devient "Prévue".
+     *    Raison : la tâche est planifiée pour commencer plus tard.
+     *
+     * 5. Dans les autres cas, le statut devient "En cours".
+     *    Raison : aujourd’hui est compris dans la période active de la tâche.
+     *
+     * Important :
+     * - Les comparaisons se font uniquement sur les dates, sans les heures.
+     * - Le contrôleur doit avoir validé les formats avant d’appeler cette méthode.
+     * - La date d’échéance est obligatoire côté contrôleur pour la création.
+     *
+     * @param string|null $startDate     Date de début au format YYYY-MM-DD, ou null.
+     * @param string|null $dueDate       Date d’échéance au format YYYY-MM-DD.
+     * @param string|null $currentStatus Statut courant éventuel.
+     *
+     * @return string Statut calculé.
+     */
     public function assignAutomaticStatus(
         ?string $startDate,
         ?string $dueDate,
@@ -36,20 +81,54 @@ class Task
 
         $today = new DateTimeImmutable('today');
 
-        if ($startDate !== null) {
-            $start = new DateTimeImmutable($startDate);
-            if ($today < $start) {
-                return 'Prévue';
-            }
-        }
+        /*
+         * Sécurité défensive :
+         * même si le contrôleur doit déjà transformer une date de début vide en null,
+         * cette normalisation évite qu’une chaîne vide soit interprétée comme une date.
+         */
+        $startDate = $startDate !== '' ? $startDate : null;
+        $dueDate = $dueDate !== '' ? $dueDate : null;
 
+        /*
+         * Priorité 1 après "Terminée" :
+         * si l’échéance est dépassée, la tâche est "Dépassée",
+         * même si la date de début est absente.
+         */
         if ($dueDate !== null) {
             $due = new DateTimeImmutable($dueDate);
+
             if ($today > $due) {
                 return 'Dépassée';
             }
         }
 
+        /*
+         * Si aucune date de début n’est renseignée,
+         * la tâche est considérée comme "À planifier".
+         */
+        if ($startDate === null) {
+            return 'À planifier';
+        }
+
+        /*
+         * Si la date de début est dans le futur,
+         * la tâche est prévue mais pas encore active.
+         */
+        $start = new DateTimeImmutable($startDate);
+
+        if ($today < $start) {
+            return 'Prévue';
+        }
+
+        /*
+         * À ce stade :
+         * - la tâche n’est pas terminée ;
+         * - l’échéance n’est pas dépassée ;
+         * - une date de début existe ;
+         * - la date de début est aujourd’hui ou dans le passé.
+         *
+         * Le statut est donc "En cours".
+         */
         return 'En cours';
     }
 

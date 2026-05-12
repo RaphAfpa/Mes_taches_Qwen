@@ -13,34 +13,22 @@
    - Aucune logique métier ici
 */
 
-/* =====================================================================
-   VARIABLES CSS (THÈME)
-   =====================================================================
-   Centralisation des couleurs et valeurs réutilisables.
-   Permet :
-   - cohérence visuelle
-   - évolutions rapides
-*/
-
 :root {
-    /* États de tâches */
     --color-planned: #3B82F6;
     --color-in-progress: #059669;
     --color-overdue: #EF4444;
     --color-completed: #9CA3AF;
+    --color-to-plan: #374151;
 
-    /* Interface générale */
     --color-background: #d0d3db;
     --color-surface: #FFFFFF;
     --color-text: #111827;
     --color-border: #D1D5DB;
 
-    /* Boutons */
     --color-button-green: #10B981;
     --color-button-red: #EF4444;
     --color-button-blue-gray: #6B7280;
 
-    /* Accessibilité */
     --focus-outline: 2px solid #2563eb;
 }
 
@@ -56,7 +44,6 @@ body {
     color: var(--color-text);
 }
 
-/* Focus clavier visible (obligatoire accessibilité) */
 :focus-visible {
     outline: var(--focus-outline);
     outline-offset: 2px;
@@ -111,9 +98,15 @@ header.container {
     position: relative;
 }
 
-/* Menu utilisateur */
+/* ---------------------------------------------------------------------
+   MENU UTILISATEUR
+   ---------------------------------------------------------------------
+   IMPORTANT :
+   - L’ouverture/fermeture est gérée via l’attribut HTML `hidden`
+   - Le CSS NE DOIT PAS se baser sur des classes JS
+*/
+
 #header-menu {
-    display: none;
     position: absolute;
     right: 0;
     top: 100%;
@@ -124,7 +117,11 @@ header.container {
     z-index: 1000;
 }
 
-#header-menu.menu-open {
+#header-menu[hidden] {
+    display: none;
+}
+
+#header-menu:not([hidden]) {
     display: block;
 }
 
@@ -172,6 +169,47 @@ button.blue-gray {
     color: white;
 }
 
+/*
+   Liens visuellement assimilés à des boutons.
+
+   Rôle :
+   - permettre à un lien <a> de ressembler à un bouton ;
+   - conserver la sémantique correcte lorsqu’il s’agit d’une navigation ;
+   - éviter d’utiliser un <button> pour une simple redirection.
+*/
+.button-link,
+.action-link {
+    display: inline-block;
+    padding: 10px 15px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.button-link.green,
+.action-link.green {
+    background-color: var(--color-button-green);
+    color: white;
+}
+
+.button-link.red,
+.action-link.red {
+    background-color: var(--color-button-red);
+    color: white;
+}
+
+.button-link.blue-gray,
+.action-link.blue-gray {
+    background-color: var(--color-button-blue-gray);
+    color: white;
+}
+
+.button-link:hover,
+.action-link:hover {
+    opacity: 0.9;
+}
+
 /* =====================================================================
    FORMULAIRES
    ===================================================================== */
@@ -192,10 +230,81 @@ textarea {
     box-sizing: border-box;
 }
 
+/*
+   Textarea générique.
+
+   Rôle :
+   - permettre la saisie de texte long ;
+   - garder une hauteur contrôlée ;
+   - empêcher le champ de désorganiser la page.
+*/
 textarea {
     resize: vertical;
     min-height: 60px;
     max-height: 200px;
+}
+
+/* ---------------------------------------------------------------------
+   FORMULAIRE DE CRÉATION DE TÂCHE
+   ---------------------------------------------------------------------
+   Ces classes sont utilisées par creer_tache.php.
+
+   Objectif :
+   - rendre le formulaire lisible ;
+   - séparer visuellement les groupes de champs ;
+   - prévoir les aides et messages d’erreur ;
+   - conserver une mise en page simple et mobile-first.
+*/
+
+.form-help {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 20px;
+}
+
+.form-message {
+    margin-bottom: 15px;
+    color: var(--color-button-red);
+    font-weight: bold;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+}
+
+.field-help {
+    margin-top: -6px;
+    margin-bottom: 12px;
+    font-size: 0.9rem;
+    color: #4B5563;
+}
+
+/*
+   Description de tâche.
+
+   Règle fonctionnelle :
+   - maximum 500 caractères côté HTML / JS / serveur ;
+   - affichage minimum 3 lignes ;
+   - hauteur maximum équivalente à environ 10 lignes ;
+   - ascenseur vertical si le contenu dépasse la hauteur maximale.
+*/
+#create-task-form textarea {
+    min-height: calc(1.6em * 3);
+    max-height: calc(1.6em * 10);
+    overflow-y: auto;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 20px;
 }
 
 /* =====================================================================
@@ -223,14 +332,8 @@ textarea {
 }
 
 /* =====================================================================
-   ACCORDÉON DES TÂCHES (POINT CLÉ)
+   ACCORDÉON DES TÂCHES
    ===================================================================== */
-
-/*
-   IMPORTANT ACCESSIBILITÉ :
-   - L’ouverture/fermeture est gérée par l’attribut HTML `hidden`
-   - PAS de display:none en CSS ici
-*/
 
 .task-item {
     background-color: var(--color-surface);
@@ -247,17 +350,51 @@ textarea {
     border-bottom: 1px solid var(--color-border);
 }
 
-/* État ouvert (ARIA) — aide visuelle */
 .task-header[aria-expanded="true"] {
     background-color: #F3F4F6;
 }
 
 .task-details {
     padding: 15px;
+    position: relative; /* nécessaire pour bouton poubelle */
+}
+
+/* ---------------------------------------------------------------------
+   COULEURS D’ÉTAT DES TÂCHES
+   ---------------------------------------------------------------------
+   Ces classes sont prévues pour une éventuelle représentation visuelle
+   des statuts dans l’interface.
+
+   Statuts :
+   - À planifier : gris foncé
+   - Prévue : bleu
+   - En cours : vert
+   - Dépassée : rouge
+   - Terminée : gris
+*/
+
+.status-to-plan {
+    color: var(--color-to-plan);
+}
+
+.status-planned {
+    color: var(--color-planned);
+}
+
+.status-in-progress {
+    color: var(--color-in-progress);
+}
+
+.status-overdue {
+    color: var(--color-overdue);
+}
+
+.status-completed {
+    color: var(--color-completed);
 }
 
 /* =====================================================================
-   ÉTATS VIDES & MESSAGES
+   ÉTATS VIDES
    ===================================================================== */
 
 .empty-state {
@@ -267,4 +404,60 @@ textarea {
     border-radius: 6px;
     font-style: italic;
 }
-``
+
+/* =====================================================================
+   AJOUT — SUPPRESSION DE TÂCHE
+   ===================================================================== */
+
+.delete-task-button {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--color-button-red);
+    font-size: 1.4rem;
+    cursor: pointer;
+}
+
+.delete-task-button:hover {
+    transform: scale(1.15);
+}
+
+.delete-task-button:focus-visible {
+    outline: var(--focus-outline);
+}
+
+/* =====================================================================
+   AJOUT — POPUP CONFIRMATION "SUPPRIMER ?"
+   ===================================================================== */
+
+.confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+}
+
+.confirm-box {
+    background-color: var(--color-surface);
+    padding: 20px;
+    border-radius: 8px;
+    min-width: 220px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.confirm-box p {
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.confirm-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
