@@ -39,7 +39,7 @@ body {
 }
 
 /* =====================================================================
-   CONTENEURS & LAYOUT
+   CONTENEURS &amp; LAYOUT
    ===================================================================== */
 
 .container {
@@ -346,6 +346,313 @@ textarea {
 }
 
 .confirm-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+/* =====================================================================
+   AJOUTS — TRANSITION VERS BEM LIGHT FRANÇAIS
+   =====================================================================
+
+   Objectif :
+   - ajouter les nouvelles classes conformes à la charte validée ;
+   - ne supprimer aucune ancienne classe pendant la migration ;
+   - permettre une transition progressive HTML / JS ;
+   - supprimer les anciennes classes uniquement après audit final.
+
+   Rappel de la charte :
+   - noms en français ;
+   - minuscules ;
+   - séparateur structurel : tiret simple ;
+   - états / modificateurs : double tiret ;
+   - pas de franglais.
+*/
+
+/* =====================================================================
+   CONTENEURS — BEM LIGHT FRANÇAIS
+   ===================================================================== */
+
+/* Nouvelle classe équivalente à .container */
+.conteneur {
+    max-width: 360px;
+    margin: 0 auto;
+    padding: 0 16px;
+    box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+    .conteneur { max-width: 720px; }
+}
+
+@media (min-width: 1024px) {
+    .conteneur { max-width: 960px; }
+}
+
+@media (min-width: 1200px) {
+    .conteneur { max-width: 1200px; }
+}
+
+/* Nouvelle règle équivalente à header.container */
+header.conteneur {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* =====================================================================
+   BOUTONS — BEM LIGHT FRANÇAIS
+   ===================================================================== */
+
+/* Nouvelles variantes équivalentes à button.green / button.red / button.blue-gray */
+button.vert {
+    background-color: var(--color-button-green);
+    color: white;
+}
+
+button.rouge {
+    background-color: var(--color-button-red);
+    color: white;
+}
+
+button.bleu-gris {
+    background-color: var(--color-button-blue-gray);
+    color: white;
+}
+
+/* Nouvelles classes équivalentes à .button-link / .action-link */
+.lien-bouton,
+.lien-action {
+    display: inline-block;
+    padding: 10px 15px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.lien-bouton.vert,
+.lien-action.vert {
+    background-color: var(--color-button-green);
+    color: white;
+}
+
+.lien-bouton.rouge,
+.lien-action.rouge {
+    background-color: var(--color-button-red);
+    color: white;
+}
+
+.lien-bouton.bleu-gris,
+.lien-action.bleu-gris {
+    background-color: var(--color-button-blue-gray);
+    color: white;
+}
+
+/* =====================================================================
+   FILTRES — BEM LIGHT FRANÇAIS
+   ===================================================================== */
+
+/* Nouvelle classe équivalente à .filters */
+.filtres {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 15px;
+    margin: 20px 0;
+}
+
+/* Nouvelle classe équivalente à .filters-grid */
+.filtres-grille {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+/* Nouvelle classe équivalente à .filter-item */
+.filtre-element {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 10px;
+}
+
+.filtre-element label {
+    margin: 0;
+    white-space: nowrap;
+}
+
+.filtre-element select {
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .filtres-grille {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .filtres-grille {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* =====================================================================
+   TÂCHES — BEM LIGHT FRANÇAIS
+   ===================================================================== */
+
+/* Nouvelle classe équivalente à .task-item */
+.tache {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+/* Nouvelle classe équivalente à .task-header */
+.tache-entete {
+    width: 100%;
+    background-color: #F9FAFB;
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.tache-entete[aria-expanded="true"] {
+    background-color: #F3F4F6;
+}
+
+/* Nouvelle classe équivalente à .task-details */
+.tache-details {
+    padding: 15px;
+    position: relative;
+}
+
+/* États futurs conformes à la charte BEM light */
+.tache--terminee {
+    color: var(--color-completed);
+}
+
+.tache--depassee {
+    color: var(--color-overdue);
+}
+
+.tache--en-cours {
+    color: var(--color-in-progress);
+}
+
+.tache--prevue {
+    color: var(--color-planned);
+}
+
+.tache--a-planifier {
+    color: var(--color-to-plan);
+}
+
+/* =====================================================================
+   ÉTATS VIDES — BEM LIGHT FRANÇAIS
+   ===================================================================== */
+
+/* Nouvelle classe équivalente à .empty-state */
+.etat-vide {
+    padding: 1rem;
+    background-color: var(--color-surface);
+    border: 1px dashed var(--color-border);
+    border-radius: 6px;
+    font-style: italic;
+}
+
+/* =====================================================================
+   ACTIONS DE TÂCHE — BEM LIGHT FRANÇAIS
+   ===================================================================== */
+
+/* Nouvelle classe équivalente à .delete-task-button */
+.bouton-supprimer {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--color-button-red);
+    font-size: 1.4rem;
+    cursor: pointer;
+}
+
+.bouton-supprimer:hover {
+    transform: scale(1.15);
+}
+
+.bouton-supprimer:focus-visible {
+    outline: var(--focus-outline);
+}
+
+/* Classe prévue pour le bouton de modification */
+.bouton-modifier {
+    background: none;
+    border: none;
+    color: var(--color-button-blue-gray);
+    font-size: 1.4rem;
+    cursor: pointer;
+}
+
+.bouton-modifier:hover {
+    transform: scale(1.15);
+}
+
+.bouton-modifier:focus-visible {
+    outline: var(--focus-outline);
+}
+
+/* Classe prévue pour le bouton de validation / tâche terminée */
+.bouton-terminer {
+    background: none;
+    border: none;
+    color: var(--color-button-green);
+    font-size: 1.4rem;
+    cursor: pointer;
+}
+
+.bouton-terminer:hover {
+    transform: scale(1.15);
+}
+
+.bouton-terminer:focus-visible {
+    outline: var(--focus-outline);
+}
+
+/* =====================================================================
+   POPUP CONFIRMATION — BEM LIGHT FRANÇAIS
+   ===================================================================== */
+
+/* Nouvelle classe équivalente à .confirm-overlay */
+.fenetre-confirmation {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+}
+
+/* Nouvelle classe équivalente à .confirm-box */
+.boite-confirmation {
+    background-color: var(--color-surface);
+    padding: 20px;
+    border-radius: 8px;
+    min-width: 220px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.boite-confirmation p {
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+/* Nouvelle classe équivalente à .confirm-actions */
+.actions-confirmation {
     display: flex;
     justify-content: center;
     gap: 10px;
