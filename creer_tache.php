@@ -27,7 +27,7 @@ include 'includes/header_commun.php';
     - conserver une cohérence visuelle avec taches.php.
 -->
 <div id="header-wrapper">
-    <header class="container" role="banner">
+    <header class="container conteneur" role="banner">
 
         <!--
             Logo cliquable.
@@ -49,7 +49,7 @@ include 'includes/header_commun.php';
             - permettre à l’utilisateur de revenir à la liste sans créer de tâche ;
             - ne déclenche aucun appel API.
         -->
-        <a href="taches.php" class="blue-gray button-link">
+        <a href="taches.php" class="blue-gray button-link bleu-gris lien-bouton">
             Retour
         </a>
 
@@ -64,7 +64,7 @@ include 'includes/header_commun.php';
     - fournir une structure sémantique claire ;
     - faciliter la validation côté client par JavaScript.
 -->
-<main class="container" role="main">
+<main class="container conteneur" role="main">
 
     <!--
         Titre principal de la page.
@@ -82,7 +82,7 @@ include 'includes/header_commun.php';
         - expliquer que le statut n’est pas saisi manuellement ;
         - rappeler que le statut sera calculé automatiquement côté serveur.
     -->
-    <p class="form-help">
+    <p class="form-help aide-formulaire">
         Renseignez les informations de la tâche. Le statut sera calculé automatiquement à partir des dates.
     </p>
 
@@ -95,7 +95,7 @@ include 'includes/header_commun.php';
     -->
     <div
         id="create-task-message"
-        class="form-message"
+        class="form-message message-formulaire"
         role="status"
         aria-live="polite"
     ></div>
@@ -118,7 +118,7 @@ include 'includes/header_commun.php';
             - minimum 3 caractères ;
             - maximum 50 caractères.
         -->
-        <div class="form-group">
+        <div class="form-group groupe-formulaire">
             <label for="task-name">Nom de la tâche</label>
             <input
                 type="text"
@@ -129,7 +129,7 @@ include 'includes/header_commun.php';
                 required
                 aria-describedby="task-name-help"
             >
-            <p id="task-name-help" class="field-help">
+            <p id="task-name-help" class="field-help aide-champ">
                 3 à 50 caractères.
             </p>
         </div>
@@ -142,7 +142,7 @@ include 'includes/header_commun.php';
             - valeurs autorisées : Travail, Bricolage, Loisirs ;
             - l’option vide force l’utilisateur à faire un choix explicite.
         -->
-        <div class="form-group">
+        <div class="form-group groupe-formulaire">
             <label for="task-category">Catégorie</label>
             <select
                 id="task-category"
@@ -164,7 +164,7 @@ include 'includes/header_commun.php';
             - si le champ est vide, js/app.js enverra null à l’API ;
             - cette date sert au calcul du statut automatique.
         -->
-        <div class="form-group">
+        <div class="form-group groupe-formulaire">
             <label for="task-start-date">Date de début</label>
             <input
                 type="date"
@@ -181,7 +181,7 @@ include 'includes/header_commun.php';
             - doit être une date valide ;
             - ne doit pas être antérieure à la date de début si celle-ci est renseignée.
         -->
-        <div class="form-group">
+        <div class="form-group groupe-formulaire">
             <label for="task-due-date">Date d’échéance</label>
             <input
                 type="date"
@@ -202,7 +202,7 @@ include 'includes/header_commun.php';
             - hauteur maximale gérée par CSS ;
             - ascenseur si le contenu dépasse la hauteur maximale.
         -->
-        <div class="form-group">
+        <div class="form-group groupe-formulaire">
             <label for="task-description">Description</label>
             <textarea
                 id="task-description"
@@ -211,7 +211,7 @@ include 'includes/header_commun.php';
                 maxlength="500"
                 aria-describedby="task-description-help"
             ></textarea>
-            <p id="task-description-help" class="field-help">
+            <p id="task-description-help" class="field-help aide-champ">
                 500 caractères maximum. Les liens restent du texte simple.
             </p>
         </div>
@@ -229,12 +229,12 @@ include 'includes/header_commun.php';
             - ne déclenche aucun appel API ;
             - ne modifie aucune donnée.
         -->
-        <div class="form-actions">
-            <button type="submit" class="green">
+        <div class="form-actions actions-formulaire">
+            <button type="submit" class="green vert">
                 Valider
             </button>
 
-            <a href="taches.php" class="blue-gray button-link">
+            <a href="taches.php" class="blue-gray button-link bleu-gris lien-bouton">
                 Annuler
             </a>
         </div>
