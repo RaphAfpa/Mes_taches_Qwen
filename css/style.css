@@ -228,9 +228,9 @@ textarea {
 
 .filter-item {
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: 78px 1fr;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .filter-item label {
@@ -240,6 +240,10 @@ textarea {
 
 .filter-item select {
     width: 100%;
+    margin-bottom: 0;
+    height: 30px;
+    padding: 3px 10px;
+    line-height: 1.2;
 }
 
 @media (min-width: 768px) {
@@ -472,9 +476,9 @@ button.bleu-gris {
 /* Nouvelle classe équivalente à .filter-item */
 .filtre-element {
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: 78px 1fr;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .filtre-element label {
@@ -484,6 +488,10 @@ button.bleu-gris {
 
 .filtre-element select {
     width: 100%;
+    margin-bottom: 0;
+    height: 30px;
+    padding: 3px 10px;
+    line-height: 1.2;
 }
 
 @media (min-width: 768px) {
@@ -806,4 +814,52 @@ button.bleu-gris {
     vertical-align: middle;
     appearance: none;
     -webkit-appearance: none;
+}
+
+/* =====================================================================
+   AJOUT — CORRECTION DE SUPERPOSITION DES ACTIONS DE TÂCHE
+   =====================================================================
+
+   Objectif :
+   - réintégrer la poubelle dans le flux flex des actions ;
+   - empêcher toute superposition avec le crayon ;
+   - annuler explicitement le positionnement absolu hérité.
+*/
+
+.task-actions .delete-task-button,
+.task-actions .bouton-supprimer,
+.actions-tache .delete-task-button,
+.actions-tache .bouton-supprimer {
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    margin: 0;
+    background: none;
+    border: none;
+    color: var(--color-button-red);
+    font-size: 1.4rem;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+
+.task-actions .delete-task-button:hover,
+.task-actions .bouton-supprimer:hover,
+.actions-tache .delete-task-button:hover,
+.actions-tache .bouton-supprimer:hover {
+    transform: scale(1.15);
+}
+
+.task-actions .delete-task-button:focus-visible,
+.task-actions .bouton-supprimer:focus-visible,
+.actions-tache .delete-task-button:focus-visible,
+.actions-tache .bouton-supprimer:focus-visible {
+    outline: var(--focus-outline);
 }
