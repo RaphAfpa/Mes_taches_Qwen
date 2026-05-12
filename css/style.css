@@ -245,12 +245,12 @@ textarea {
 }
 
 /* ---------------------------------------------------------------------
-   FORMULAIRE DE CRÉATION DE TÂCHE
+   FORMULAIRES DE CRÉATION / MODIFICATION DE TÂCHE
    ---------------------------------------------------------------------
-   Ces classes sont utilisées par creer_tache.php.
+   Ces classes sont utilisées par creer_tache.php et modif_tache.php.
 
    Objectif :
-   - rendre le formulaire lisible ;
+   - rendre les formulaires lisibles ;
    - séparer visuellement les groupes de champs ;
    - prévoir les aides et messages d’erreur ;
    - conserver une mise en page simple et mobile-first.
@@ -294,7 +294,8 @@ textarea {
    - hauteur maximum équivalente à environ 10 lignes ;
    - ascenseur vertical si le contenu dépasse la hauteur maximale.
 */
-#create-task-form textarea {
+#create-task-form textarea,
+#edit-task-form textarea {
     min-height: calc(1.6em * 3);
     max-height: calc(1.6em * 10);
     overflow-y: auto;
@@ -340,23 +341,112 @@ textarea {
     border: 1px solid var(--color-border);
     border-radius: 8px;
     margin-bottom: 12px;
+    overflow: hidden;
+}
+
+/*
+   Bandeau de tâche.
+
+   Rôle :
+   - contenir le bouton principal d’ouverture de l’accordéon ;
+   - contenir, si nécessaire, le bouton coche verte ;
+   - éviter d’imbriquer un bouton dans un autre bouton.
+*/
+.task-header-row {
+    display: flex;
+    align-items: stretch;
+    background-color: #F9FAFB;
+    border-bottom: 1px solid var(--color-border);
 }
 
 .task-header {
-    width: 100%;
-    background-color: #F9FAFB;
+    flex: 1;
+    width: auto;
+    background-color: transparent;
     padding: 15px;
     text-align: left;
-    border-bottom: 1px solid var(--color-border);
+    border-radius: 0;
+    border-bottom: none;
+    color: var(--color-text);
 }
 
 .task-header[aria-expanded="true"] {
     background-color: #F3F4F6;
 }
 
+/*
+   Bouton coche verte.
+
+   Rôle :
+   - marquer une tâche comme Terminée ;
+   - rester séparé du bouton d’accordéon pour conserver un HTML valide ;
+   - donner visuellement l’impression de faire partie du même bandeau.
+*/
+.complete-task-button {
+    background-color: transparent;
+    color: var(--color-button-green);
+    border-left: 1px solid var(--color-border);
+    border-radius: 0;
+    font-size: 1.2rem;
+    min-width: 48px;
+    padding: 0 14px;
+}
+
+.complete-task-button:hover {
+    background-color: #ECFDF5;
+}
+
 .task-details {
     padding: 15px;
-    position: relative; /* nécessaire pour bouton poubelle */
+    position: relative;
+}
+
+/* ---------------------------------------------------------------------
+   ACTIONS DANS L’ACCORDÉON
+   ---------------------------------------------------------------------
+   Rôle :
+   - regrouper les actions Modifier / Supprimer ;
+   - placer les actions en bas à droite dans la zone dépliée ;
+   - éviter de positionner chaque bouton isolément.
+*/
+
+.task-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+/*
+   Bouton Modifier.
+
+   Rôle :
+   - lien vers modif_tache.php?id=...
+   - stylisé comme une action discrète ;
+   - placé à gauche du bouton Supprimer.
+*/
+.edit-task-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--color-button-blue-gray);
+    background-color: transparent;
+    font-size: 1.4rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.edit-task-button:hover {
+    transform: scale(1.15);
+}
+
+.edit-task-button:focus-visible {
+    outline: var(--focus-outline);
 }
 
 /* ---------------------------------------------------------------------
@@ -409,15 +499,27 @@ textarea {
    AJOUT — SUPPRESSION DE TÂCHE
    ===================================================================== */
 
+/*
+   Bouton Supprimer.
+
+   Rôle :
+   - supprimer une tâche après confirmation ;
+   - être affiché dans le conteneur .task-actions ;
+   - ne plus être positionné en absolu, afin de cohabiter proprement
+     avec le bouton Modifier.
+*/
 .delete-task-button {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
     background: none;
     border: none;
     color: var(--color-button-red);
     font-size: 1.4rem;
     cursor: pointer;
+    padding: 0;
 }
 
 .delete-task-button:hover {

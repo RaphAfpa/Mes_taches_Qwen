@@ -175,6 +175,46 @@ class Task
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Récupère une tâche unique appartenant à un utilisateur donné.
+     *
+     * Rôle :
+     * - Permettre à l’API de servir GET /api/tasks?id=123.
+     * - Vérifier que la tâche demandée appartient bien à l’utilisateur connecté.
+     * - Empêcher l’accès à une tâche d’un autre utilisateur, même si l’ID est deviné
+     *   ou modifié manuellement dans l’URL.
+     *
+     * Important :
+     * - L’ID venant du front-end n’est jamais une preuve de sécurité.
+     * - La vérification user_id côté SQL est indispensable.
+     *
+     * @param int $taskId ID de la tâche demandée.
+     * @param int $userId ID de l’utilisateur connecté.
+     *
+     * @return array|null Données de la tâche ou null si elle est introuvable.
+     */
+    public function findByIdForUser(int $taskId, int $userId): ?array
+    {
+        $query = "
+            SELECT id, user_id, name, category, status, start_date, due_date, description, created_at
+            FROM {$this->table}
+            WHERE id = :id
+              AND user_id = :user_id
+            LIMIT 1
+        ";
+
+        $stmt = $this->db->prepare($query);
+
+        $stmt->execute([
+            'id'      => $taskId,
+            'user_id' => $userId
+        ]);
+
+        $task = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $task ?: null;
+    }
+
     public function create(): bool
     {
         $query = "

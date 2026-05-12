@@ -155,10 +155,54 @@ class TaskController
         $parsedDate = DateTimeImmutable::createFromFormat('Y-m-d', $date);
         $errors = DateTimeImmutable::getLastErrors();
 
-        return $parsedDate !== false
-            && $errors['warning_count'] === 0
-            && $errors['error_count'] === 0
-            && $parsedDate->format('Y-m-d') === $date;
+        if ($parsedDate === false) {
+            return false;
+        }
+
+        /*
+         * DateTimeImmutable::getLastErrors() peut retourner false lorsqu’aucune
+         * erreur n’est détectée selon les versions de PHP.
+         * On traite donc false comme une absence d’erreur.
+         */
+        if ($errors !== false) {
+            if ($errors['warning_count'] !== 0 || $errors['error_count'] !== 0) {
+                return false;
+            }
+        }
+
+        return $parsedDate->format('Y-m-d') === $date;
+    }
+
+    /**
+     * Valide un identifiant de tâche reçu depuis une requête.
+     *
+     * Rôle :
+     * - Éviter de convertir silencieusement une valeur invalide en 0.
+     * - Refuser les ID absents, vides, non numériques ou inférieurs à 1.
+     *
+     * @param mixed $value Valeur reçue depuis GET ou JSON.
+     *
+     * @return int ID positif validé.
+     */
+    private function validateTaskId(mixed $value): int
+    {
+        if ($value === null || $value === '') {
+            $this->sendResponse(false, null, 'ID de tâche requis', 400);
+        }
+
+        $valueAsString = (string) $value;
+
+        if (!ctype_digit($valueAsString)) {
+            $this->sendResponse(false, null, 'ID de tâche invalide', 400);
+        }
+
+        $id = (int) $valueAsString;
+
+        if ($id < 1) {
+            $this->sendResponse(false, null, 'ID de tâche invalide', 400);
+        }
+
+        return $id;
     }
 
     /**
@@ -175,8 +219,10 @@ class TaskController
      */
     private function validateTaskData(array $data, bool $requireId = false): array
     {
-        if ($requireId && empty($data['id'])) {
-            $this->sendResponse(false, null, 'ID de tâche requis', 400);
+        $validatedId = null;
+
+        if ($requireId) {
+            $validatedId = $this->validateTaskId($data['id'] ?? null);
         }
 
         $name = trim((string) ($data['name'] ?? ''));
@@ -257,7 +303,7 @@ class TaskController
         }
 
         return [
-            'id'          => $requireId ? (int) $data['id'] : null,
+            'id'          => $validatedId,
             'name'        => $name,
             'category'    => $category,
             'start_date'  => $normalizedStartDate,
@@ -272,11 +318,45 @@ class TaskController
 
     /**
      * Récupère les tâches de l’utilisateur connecté.
+     *
+     * Deux usages sont pris en charge par la même route GET /api/tasks :
+     *
+     * 1. Sans paramètre id :
+     *    - retourne la liste des tâches de l’utilisateur connecté ;
+     *    - applique les filtres category / status et le tri.
+     *
+     * 2. Avec paramètre id :
+     *    - retourne une seule tâche ;
+     *    - vérifie que la tâche appartient bien à l’utilisateur connecté ;
+     *    - renvoie 404 si la tâche est introuvable.
+     *
+     * Important :
+     * - Aucun changement de route n’est nécessaire dans api/index.php
+     *   si GET /api/tasks pointe déjà vers cette méthode.
      */
     public function getTasks(): void
     {
         $userId = $this->requireAuth();
 
+        /*
+         * Cas GET /api/tasks?id=123
+         * Utilisé notamment par modif_tache.php pour préremplir le formulaire.
+         */
+        if (isset($_GET['id'])) {
+            $taskId = $this->validateTaskId($_GET['id']);
+            $task = $this->task->findByIdForUser($taskId, $userId);
+
+            if (!$task) {
+                $this->sendResponse(false, null, 'Tâche introuvable', 404);
+            }
+
+            $this->sendResponse(true, $task);
+        }
+
+        /*
+         * Cas GET /api/tasks
+         * Utilisé par taches.php pour afficher la liste.
+         */
         $filters = [];
         $sort = $_GET['sort'] ?? 'created_at DESC';
 
@@ -331,8 +411,11 @@ class TaskController
     /**
      * Met à jour une tâche existante.
      *
-     * Si le statut reçu est "Terminée", il est conservé comme statut manuel.
-     * Sinon, le statut est recalculé automatiquement à partir des dates validées.
+     * Règles appliquées :
+     * - L’utilisateur ne peut modifier qu’une tâche qui lui appartient.
+     * - Si la tâche existante est déjà "Terminée", elle reste "Terminée".
+     * - Si la requête demande explicitement "Terminée", le statut devient "Terminée".
+     * - Sinon, le statut est recalculé automatiquement à partir des dates validées.
      */
     public function updateTask(): void
     {
@@ -342,6 +425,21 @@ class TaskController
         $data = $this->getJsonBody();
         $validatedData = $this->validateTaskData($data, true);
 
+        /*
+         * Avant toute mise à jour, on vérifie que la tâche existe
+         * et qu’elle appartient bien à l’utilisateur connecté.
+         *
+         * Cela protège contre :
+         * - les ID modifiés manuellement ;
+         * - les tentatives d’accès à une tâche d’un autre utilisateur ;
+         * - les tâches supprimées entre l’affichage et la modification.
+         */
+        $existingTask = $this->task->findByIdForUser($validatedData['id'], $userId);
+
+        if (!$existingTask) {
+            $this->sendResponse(false, null, 'Tâche introuvable', 404);
+        }
+
         $this->task->id = $validatedData['id'];
         $this->task->user_id = $userId;
         $this->task->name = $validatedData['name'];
@@ -350,7 +448,15 @@ class TaskController
         $this->task->due_date = $validatedData['due_date'];
         $this->task->description = $validatedData['description'];
 
-        if (($data['status'] ?? '') === 'Terminée') {
+        /*
+         * Gestion du statut :
+         * - une tâche déjà terminée reste terminée ;
+         * - une requête peut explicitement marquer la tâche comme terminée ;
+         * - sinon, le statut est recalculé automatiquement.
+         */
+        if (($existingTask['status'] ?? '') === 'Terminée') {
+            $this->task->status = 'Terminée';
+        } elseif (($data['status'] ?? '') === 'Terminée') {
             $this->task->status = 'Terminée';
         } else {
             $this->task->status = $this->task->assignAutomaticStatus(
@@ -377,11 +483,9 @@ class TaskController
 
         $data = $this->getJsonBody();
 
-        if (empty($data['id'])) {
-            $this->sendResponse(false, null, 'ID requis pour la suppression', 400);
-        }
+        $taskId = $this->validateTaskId($data['id'] ?? null);
 
-        $this->task->id = (int) $data['id'];
+        $this->task->id = $taskId;
         $this->task->user_id = $userId;
 
         if (!$this->task->delete()) {

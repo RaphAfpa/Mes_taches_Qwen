@@ -6,10 +6,13 @@
  * - Gérer l’authentification : login / register / logout
  * - Initialiser la page taches.php
  * - Initialiser la page creer_tache.php
+ * - Initialiser la page modif_tache.php
  * - Charger et afficher les tâches
  * - Gérer le menu utilisateur
  * - Supprimer une tâche avec confirmation stylée
  * - Créer une tâche via la page dédiée
+ * - Modifier une tâche via la page dédiée
+ * - Marquer une tâche comme terminée
  * - Gérer le token CSRF
  *
  * Principe :
@@ -259,6 +262,7 @@ async function logout(event) {
  * Utilisé par :
  * - taches.php
  * - creer_tache.php
+ * - modif_tache.php
  */
 async function loadProfile() {
     const res = await apiFetch('/api/profile');
@@ -275,31 +279,8 @@ async function loadProfile() {
 }
 
 /* ========================
-   PAGE TÂCHES : CHARGEMENT
+   OUTILS DATES
    ======================== */
-
-/**
- * Charge les tâches de l’utilisateur connecté.
- *
- * Rôle :
- * - Lire les filtres sélectionnés.
- * - Interroger GET /api/tasks.
- * - Déléguer l’affichage à renderTasks().
- */
-async function loadTasks() {
-    const list = document.getElementById('task-list');
-
-    if (!list) return;
-
-    const category = document.getElementById('category-filter')?.value ?? 'all';
-    const status = document.getElementById('status-filter')?.value ?? 'all';
-    const sort = document.getElementById('sort-filter')?.value ?? 'created_at DESC';
-
-    const params = new URLSearchParams({ category, status, sort });
-    const res = await apiFetch(`/api/tasks?${params.toString()}`);
-
-    renderTasks(res.data);
-}
 
 /**
  * Formate une date technique au format utilisateur français.
@@ -353,6 +334,150 @@ function formatDisplayDate(value) {
 }
 
 /**
+ * Vérifie qu’une chaîne respecte strictement le format HTML date.
+ *
+ * Format attendu :
+ * YYYY-MM-DD
+ *
+ * Important :
+ * - Ne pas utiliser toISOString() ici.
+ * - toISOString() convertit la date en UTC et peut décaler la date
+ *   selon le fuseau horaire du navigateur.
+ * - On valide donc manuellement année / mois / jour.
+ */
+function isValidHtmlDate(value) {
+    if (!value) return false;
+
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+
+    if (!match) {
+        return false;
+    }
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+
+    if (month < 1 || month > 12) {
+        return false;
+    }
+
+    if (day < 1 || day > 31) {
+        return false;
+    }
+
+    const date = new Date(year, month - 1, day);
+
+    return date.getFullYear() === year
+        && date.getMonth() === month - 1
+        && date.getDate() === day;
+}
+
+/* ========================
+   OUTILS FORMULAIRES TÂCHES
+   ======================== */
+
+/**
+ * Valide côté client les données communes aux formulaires
+ * de création et de modification d’une tâche.
+ *
+ * Rôle :
+ * - Donner un retour rapide à l’utilisateur.
+ * - Éviter les appels API inutiles.
+ *
+ * Important :
+ * - Cette validation ne remplace jamais la validation serveur.
+ */
+function validateTaskForm(form) {
+    const name = form.name.value.trim();
+    const category = form.category.value;
+    const startDate = form.start_date.value;
+    const dueDate = form.due_date.value;
+    const description = form.description.value.trim();
+
+    const allowedCategories = ['Travail', 'Bricolage', 'Loisirs'];
+
+    if (name.length < 3) {
+        return 'Le nom de la tâche doit contenir au moins 3 caractères.';
+    }
+
+    if (name.length > 50) {
+        return 'Le nom de la tâche ne doit pas dépasser 50 caractères.';
+    }
+
+    if (!allowedCategories.includes(category)) {
+        return 'Veuillez sélectionner une catégorie valide.';
+    }
+
+    if (!dueDate) {
+        return 'La date d’échéance est obligatoire.';
+    }
+
+    if (!isValidHtmlDate(dueDate)) {
+        return 'La date d’échéance est invalide.';
+    }
+
+    if (startDate && !isValidHtmlDate(startDate)) {
+        return 'La date de début est invalide.';
+    }
+
+    if (startDate && dueDate && startDate > dueDate) {
+        return 'La date de début ne peut pas être postérieure à la date d’échéance.';
+    }
+
+    if (description.length > 500) {
+        return 'La description ne doit pas dépasser 500 caractères.';
+    }
+
+    return null;
+}
+
+/**
+ * Crée le payload commun utilisé par POST /api/tasks et PUT /api/tasks.
+ *
+ * Rôle :
+ * - Centraliser la normalisation des champs.
+ * - Garantir que date de début vide devient null.
+ * - Garantir que description vide devient chaîne vide.
+ */
+function buildTaskPayloadFromForm(form) {
+    return {
+        name: form.name.value.trim(),
+        category: form.category.value,
+        start_date: form.start_date.value || null,
+        due_date: form.due_date.value,
+        description: form.description.value.trim()
+    };
+}
+
+/* ========================
+   PAGE TÂCHES : CHARGEMENT
+   ======================== */
+
+/**
+ * Charge les tâches de l’utilisateur connecté.
+ *
+ * Rôle :
+ * - Lire les filtres sélectionnés.
+ * - Interroger GET /api/tasks.
+ * - Déléguer l’affichage à renderTasks().
+ */
+async function loadTasks() {
+    const list = document.getElementById('task-list');
+
+    if (!list) return;
+
+    const category = document.getElementById('category-filter')?.value ?? 'all';
+    const status = document.getElementById('status-filter')?.value ?? 'all';
+    const sort = document.getElementById('sort-filter')?.value ?? 'created_at DESC';
+
+    const params = new URLSearchParams({ category, status, sort });
+    const res = await apiFetch(`/api/tasks?${params.toString()}`);
+
+    renderTasks(res.data);
+}
+
+/**
  * Crée un paragraphe de détail pour une tâche.
  *
  * Rôle :
@@ -374,12 +499,47 @@ function createDetailParagraph(label, value) {
 }
 
 /**
+ * Marque une tâche comme terminée.
+ *
+ * Rôle :
+ * - Envoyer toute la tâche existante à PUT /api/tasks.
+ * - Forcer uniquement le statut à "Terminée".
+ * - Recharger la liste pour respecter les filtres actifs.
+ *
+ * Important :
+ * - Aucune confirmation n’est demandée.
+ * - L’API vérifie l’authentification, le CSRF et l’appartenance de la tâche.
+ */
+async function markTaskAsCompleted(task) {
+    try {
+        await apiFetch('/api/tasks', {
+            method: 'PUT',
+            body: JSON.stringify({
+                id: task.id,
+                name: task.name,
+                category: task.category,
+                start_date: task.start_date || null,
+                due_date: task.due_date,
+                description: task.description || '',
+                status: 'Terminée'
+            })
+        });
+
+        loadTasks();
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+/**
  * Affiche les tâches dans la section #task-list.
  *
  * Rôle :
  * - Générer une structure d’accordéon accessible.
+ * - Éviter d’imbriquer un bouton dans un autre bouton.
  * - Afficher les détails de la tâche seulement à l’ouverture.
- * - Ajouter le bouton de suppression dans la zone dépliée.
+ * - Ajouter les actions Modifier / Supprimer dans la zone dépliée.
+ * - Ajouter une coche verte pour marquer une tâche non terminée comme Terminée.
  */
 function renderTasks(tasks) {
     const list = document.getElementById('task-list');
@@ -405,6 +565,17 @@ function renderTasks(tasks) {
         const article = document.createElement('article');
         article.className = 'task-item';
 
+        /*
+            Le bandeau titre est composé de deux boutons séparés :
+            - un bouton large pour ouvrir / fermer l’accordéon ;
+            - un bouton coche pour marquer la tâche comme terminée.
+
+            Cette structure évite d’imbriquer un bouton dans un autre bouton,
+            ce qui serait invalide en HTML et problématique pour l’accessibilité.
+        */
+        const headerRow = document.createElement('div');
+        headerRow.className = 'task-header-row';
+
         const header = document.createElement('button');
         header.className = 'task-header';
         header.id = `${id}-header`;
@@ -412,6 +583,29 @@ function renderTasks(tasks) {
         header.setAttribute('aria-expanded', 'false');
         header.setAttribute('aria-controls', `${id}-details`);
         header.textContent = `${task.name} (${task.status})`;
+
+        header.addEventListener('click', () => {
+            const open = header.getAttribute('aria-expanded') === 'true';
+            header.setAttribute('aria-expanded', String(!open));
+            details.hidden = open;
+        });
+
+        headerRow.appendChild(header);
+
+        if (task.status !== 'Terminée') {
+            const completeButton = document.createElement('button');
+            completeButton.type = 'button';
+            completeButton.className = 'complete-task-button';
+            completeButton.setAttribute('aria-label', 'Marquer la tâche comme terminée');
+            completeButton.setAttribute('title', 'Marquer comme terminée');
+            completeButton.textContent = '✓';
+
+            completeButton.addEventListener('click', () => {
+                markTaskAsCompleted(task);
+            });
+
+            headerRow.appendChild(completeButton);
+        }
 
         const details = document.createElement('div');
         details.className = 'task-details';
@@ -425,6 +619,16 @@ function renderTasks(tasks) {
         details.appendChild(createDetailParagraph('Début', formatDisplayDate(task.start_date)));
         details.appendChild(createDetailParagraph('Échéance', formatDisplayDate(task.due_date)));
 
+        const actions = document.createElement('div');
+        actions.className = 'task-actions';
+
+        const editLink = document.createElement('a');
+        editLink.className = 'edit-task-button';
+        editLink.href = `modif_tache.php?id=${encodeURIComponent(task.id)}`;
+        editLink.setAttribute('aria-label', 'Modifier la tâche');
+        editLink.setAttribute('title', 'Modifier');
+        editLink.textContent = '✎';
+
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
         deleteButton.className = 'delete-task-button';
@@ -435,15 +639,11 @@ function renderTasks(tasks) {
 
         deleteButton.addEventListener('click', () => openDeleteConfirm(task.id));
 
-        details.appendChild(deleteButton);
+        actions.appendChild(editLink);
+        actions.appendChild(deleteButton);
+        details.appendChild(actions);
 
-        header.addEventListener('click', () => {
-            const open = header.getAttribute('aria-expanded') === 'true';
-            header.setAttribute('aria-expanded', String(!open));
-            details.hidden = open;
-        });
-
-        article.appendChild(header);
+        article.appendChild(headerRow);
         article.appendChild(details);
         list.appendChild(article);
     });
@@ -551,46 +751,6 @@ function initMenu() {
    ======================== */
 
 /**
- * Vérifie qu’une chaîne respecte strictement le format HTML date.
- *
- * Format attendu :
- * YYYY-MM-DD
- *
- * Important :
- * - Ne pas utiliser toISOString() ici.
- * - toISOString() convertit la date en UTC et peut décaler la date
- *   selon le fuseau horaire du navigateur.
- * - On valide donc manuellement année / mois / jour.
- */
-function isValidHtmlDate(value) {
-    if (!value) return false;
-
-    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-
-    if (!match) {
-        return false;
-    }
-
-    const year = Number(match[1]);
-    const month = Number(match[2]);
-    const day = Number(match[3]);
-
-    if (month < 1 || month > 12) {
-        return false;
-    }
-
-    if (day < 1 || day > 31) {
-        return false;
-    }
-
-    const date = new Date(year, month - 1, day);
-
-    return date.getFullYear() === year
-        && date.getMonth() === month - 1
-        && date.getDate() === day;
-}
-
-/**
  * Affiche un message d’erreur sur la page de création.
  */
 function showCreateTaskError(message) {
@@ -616,54 +776,11 @@ function clearCreateTaskError() {
  * Valide côté client les données du formulaire de création.
  *
  * Rôle :
- * - Donner un retour rapide à l’utilisateur.
- * - Éviter les appels API inutiles.
- *
- * Important :
- * - Cette validation ne remplace jamais la validation serveur.
+ * - Compatibilité conservée avec le code existant.
+ * - Délègue à validateTaskForm().
  */
 function validateCreateTaskForm(form) {
-    const name = form.name.value.trim();
-    const category = form.category.value;
-    const startDate = form.start_date.value;
-    const dueDate = form.due_date.value;
-    const description = form.description.value.trim();
-
-    const allowedCategories = ['Travail', 'Bricolage', 'Loisirs'];
-
-    if (name.length < 3) {
-        return 'Le nom de la tâche doit contenir au moins 3 caractères.';
-    }
-
-    if (name.length > 50) {
-        return 'Le nom de la tâche ne doit pas dépasser 50 caractères.';
-    }
-
-    if (!allowedCategories.includes(category)) {
-        return 'Veuillez sélectionner une catégorie valide.';
-    }
-
-    if (!dueDate) {
-        return 'La date d’échéance est obligatoire.';
-    }
-
-    if (!isValidHtmlDate(dueDate)) {
-        return 'La date d’échéance est invalide.';
-    }
-
-    if (startDate && !isValidHtmlDate(startDate)) {
-        return 'La date de début est invalide.';
-    }
-
-    if (startDate && dueDate && startDate > dueDate) {
-        return 'La date de début ne peut pas être postérieure à la date d’échéance.';
-    }
-
-    if (description.length > 500) {
-        return 'La description ne doit pas dépasser 500 caractères.';
-    }
-
-    return null;
+    return validateTaskForm(form);
 }
 
 /**
@@ -687,13 +804,7 @@ async function submitCreateTask(event) {
         return;
     }
 
-    const payload = {
-        name: form.name.value.trim(),
-        category: form.category.value,
-        start_date: form.start_date.value || null,
-        due_date: form.due_date.value,
-        description: form.description.value.trim()
-    };
+    const payload = buildTaskPayloadFromForm(form);
 
     try {
         await apiFetch('/api/tasks', {
@@ -727,6 +838,154 @@ async function initCreateTaskPage() {
 
     if (form) {
         form.addEventListener('submit', submitCreateTask);
+    }
+}
+
+/* ========================
+   PAGE MODIFICATION TÂCHE
+   ======================== */
+
+/**
+ * Affiche un message d’erreur sur la page de modification.
+ */
+function showEditTaskError(message) {
+    const messageBox = document.getElementById('edit-task-message');
+
+    if (messageBox) {
+        messageBox.textContent = message;
+    }
+}
+
+/**
+ * Efface le message d’erreur de la page de modification.
+ */
+function clearEditTaskError() {
+    const messageBox = document.getElementById('edit-task-message');
+
+    if (messageBox) {
+        messageBox.textContent = '';
+    }
+}
+
+/**
+ * Récupère l’ID de tâche depuis l’URL modif_tache.php?id=123.
+ *
+ * Rôle :
+ * - Lire l’ID côté interface.
+ * - Refuser les valeurs absentes ou non numériques avant appel API.
+ *
+ * Important :
+ * - Cette vérification améliore l’UX.
+ * - La vraie sécurité reste côté API.
+ */
+function getTaskIdFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+
+    if (!id || !/^\d+$/.test(id)) {
+        return null;
+    }
+
+    return id;
+}
+
+/**
+ * Préremplit le formulaire de modification avec les données API.
+ */
+function fillEditTaskForm(task) {
+    const form = document.getElementById('edit-task-form');
+
+    if (!form) return;
+
+    form.id.value = task.id;
+    form.name.value = task.name ?? '';
+    form.category.value = task.category ?? '';
+    form.start_date.value = task.start_date ?? '';
+    form.due_date.value = task.due_date ?? '';
+    form.description.value = task.description ?? '';
+}
+
+/**
+ * Soumet le formulaire de modification.
+ *
+ * Rôle :
+ * - Valider côté client.
+ * - Envoyer PUT /api/tasks.
+ * - Rediriger vers taches.php après succès.
+ *
+ * Important :
+ * - Le formulaire ne permet pas de modifier le statut directement.
+ * - Si la tâche était Terminée, le serveur conservera ce statut.
+ * - Sinon, le serveur recalculera le statut à partir des dates.
+ */
+async function submitEditTask(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    clearEditTaskError();
+
+    const error = validateTaskForm(form);
+
+    if (error) {
+        showEditTaskError(error);
+        return;
+    }
+
+    const payload = {
+        id: form.id.value,
+        ...buildTaskPayloadFromForm(form)
+    };
+
+    try {
+        await apiFetch('/api/tasks', {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+        });
+
+        window.location.href = 'taches.php';
+    } catch (apiError) {
+        showEditTaskError(apiError.message);
+    }
+}
+
+/**
+ * Initialise la page modif_tache.php.
+ *
+ * Rôle :
+ * - Vérifier que l’utilisateur est connecté.
+ * - Récupérer le token CSRF.
+ * - Lire l’ID dans l’URL.
+ * - Charger la tâche via GET /api/tasks?id=...
+ * - Préremplir le formulaire.
+ * - Brancher la soumission du formulaire.
+ */
+async function initEditTaskPage() {
+    try {
+        await loadProfile();
+    } catch {
+        window.location.href = 'index.php';
+        return;
+    }
+
+    const taskId = getTaskIdFromUrl();
+
+    if (!taskId) {
+        window.location.href = 'taches.php';
+        return;
+    }
+
+    try {
+        const response = await apiFetch(`/api/tasks?id=${encodeURIComponent(taskId)}`);
+        fillEditTaskForm(response.data);
+    } catch {
+        window.location.href = 'taches.php';
+        return;
+    }
+
+    const form = document.getElementById('edit-task-form');
+
+    if (form) {
+        form.addEventListener('submit', submitEditTask);
     }
 }
 
@@ -779,5 +1038,13 @@ document.addEventListener('DOMContentLoaded', () => {
     */
     if (document.getElementById('create-task-form')) {
         initCreateTaskPage();
+    }
+
+    /*
+        Initialisation de modif_tache.php.
+        Le marqueur utilisé est #edit-task-form, spécifique à la page de modification.
+    */
+    if (document.getElementById('edit-task-form')) {
+        initEditTaskPage();
     }
 });
