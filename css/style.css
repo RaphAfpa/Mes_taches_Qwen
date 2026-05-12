@@ -1,17 +1,6 @@
 /* =====================================================================
    css/style.css — Application "Mes tâches"
-   =====================================================================
-
-   Rôle global :
-   - Définir l’apparence visuelle de l’application
-   - Garantir une UX claire et cohérente
-   - Assurer l’accessibilité (clavier, lecteurs d’écran)
-
-   Principe fondamental :
-   - Le HTML définit la structure et le sens
-   - Le CSS améliore la perception et la lisibilité
-   - Aucune logique métier ici
-*/
+   ===================================================================== */
 
 :root {
     --color-planned: #3B82F6;
@@ -98,13 +87,9 @@ header.container {
     position: relative;
 }
 
-/* ---------------------------------------------------------------------
+/* =====================================================================
    MENU UTILISATEUR
-   ---------------------------------------------------------------------
-   IMPORTANT :
-   - L’ouverture/fermeture est gérée via l’attribut HTML `hidden`
-   - Le CSS NE DOIT PAS se baser sur des classes JS
-*/
+   ===================================================================== */
 
 #header-menu {
     position: absolute;
@@ -169,14 +154,6 @@ button.blue-gray {
     color: white;
 }
 
-/*
-   Liens visuellement assimilés à des boutons.
-
-   Rôle :
-   - permettre à un lien <a> de ressembler à un bouton ;
-   - conserver la sémantique correcte lorsqu’il s’agit d’une navigation ;
-   - éviter d’utiliser un <button> pour une simple redirection.
-*/
 .button-link,
 .action-link {
     display: inline-block;
@@ -205,13 +182,8 @@ button.blue-gray {
     color: white;
 }
 
-.button-link:hover,
-.action-link:hover {
-    opacity: 0.9;
-}
-
 /* =====================================================================
-   FORMULAIRES
+   FORMULAIRES (GÉNÉRAUX)
    ===================================================================== */
 
 label {
@@ -230,86 +202,14 @@ textarea {
     box-sizing: border-box;
 }
 
-/*
-   Textarea générique.
-
-   Rôle :
-   - permettre la saisie de texte long ;
-   - garder une hauteur contrôlée ;
-   - empêcher le champ de désorganiser la page.
-*/
 textarea {
     resize: vertical;
     min-height: 60px;
     max-height: 200px;
 }
 
-/* ---------------------------------------------------------------------
-   FORMULAIRES DE CRÉATION / MODIFICATION DE TÂCHE
-   ---------------------------------------------------------------------
-   Ces classes sont utilisées par creer_tache.php et modif_tache.php.
-
-   Objectif :
-   - rendre les formulaires lisibles ;
-   - séparer visuellement les groupes de champs ;
-   - prévoir les aides et messages d’erreur ;
-   - conserver une mise en page simple et mobile-first.
-*/
-
-.form-help {
-    background-color: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 20px;
-}
-
-.form-message {
-    margin-bottom: 15px;
-    color: var(--color-button-red);
-    font-weight: bold;
-}
-
-.form-group {
-    margin-bottom: 16px;
-}
-
-.form-group label {
-    display: block;
-}
-
-.field-help {
-    margin-top: -6px;
-    margin-bottom: 12px;
-    font-size: 0.9rem;
-    color: #4B5563;
-}
-
-/*
-   Description de tâche.
-
-   Règle fonctionnelle :
-   - maximum 500 caractères côté HTML / JS / serveur ;
-   - affichage minimum 3 lignes ;
-   - hauteur maximum équivalente à environ 10 lignes ;
-   - ascenseur vertical si le contenu dépasse la hauteur maximale.
-*/
-#create-task-form textarea,
-#edit-task-form textarea {
-    min-height: calc(1.6em * 3);
-    max-height: calc(1.6em * 10);
-    overflow-y: auto;
-}
-
-.form-actions {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    margin-top: 20px;
-}
-
 /* =====================================================================
-   FILTRES
+   FILTRES — GRILLE RESPONSIVE
    ===================================================================== */
 
 .filters {
@@ -320,15 +220,37 @@ textarea {
     margin: 20px 0;
 }
 
-.filter-grid {
+.filters-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: 16px;
+}
+
+.filter-item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-item label {
+    margin: 0;
+    white-space: nowrap;
+}
+
+.filter-item select {
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .filters-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 @media (min-width: 1024px) {
-    .filter-grid {
-        grid-template-columns: repeat(4, 1fr);
+    .filters-grid {
+        grid-template-columns: repeat(3, 1fr);
     }
 }
 
@@ -341,146 +263,23 @@ textarea {
     border: 1px solid var(--color-border);
     border-radius: 8px;
     margin-bottom: 12px;
-    overflow: hidden;
-}
-
-/*
-   Bandeau de tâche.
-
-   Rôle :
-   - contenir le bouton principal d’ouverture de l’accordéon ;
-   - contenir, si nécessaire, le bouton coche verte ;
-   - éviter d’imbriquer un bouton dans un autre bouton.
-*/
-.task-header-row {
-    display: flex;
-    align-items: stretch;
-    background-color: #F9FAFB;
-    border-bottom: 1px solid var(--color-border);
 }
 
 .task-header {
-    flex: 1;
-    width: auto;
-    background-color: transparent;
+    width: 100%;
+    background-color: #F9FAFB;
     padding: 15px;
     text-align: left;
-    border-radius: 0;
-    border-bottom: none;
-    color: var(--color-text);
+    border-bottom: 1px solid var(--color-border);
 }
 
 .task-header[aria-expanded="true"] {
     background-color: #F3F4F6;
 }
 
-/*
-   Bouton coche verte.
-
-   Rôle :
-   - marquer une tâche comme Terminée ;
-   - rester séparé du bouton d’accordéon pour conserver un HTML valide ;
-   - donner visuellement l’impression de faire partie du même bandeau.
-*/
-.complete-task-button {
-    background-color: transparent;
-    color: var(--color-button-green);
-    border-left: 1px solid var(--color-border);
-    border-radius: 0;
-    font-size: 1.2rem;
-    min-width: 48px;
-    padding: 0 14px;
-}
-
-.complete-task-button:hover {
-    background-color: #ECFDF5;
-}
-
 .task-details {
     padding: 15px;
     position: relative;
-}
-
-/* ---------------------------------------------------------------------
-   ACTIONS DANS L’ACCORDÉON
-   ---------------------------------------------------------------------
-   Rôle :
-   - regrouper les actions Modifier / Supprimer ;
-   - placer les actions en bas à droite dans la zone dépliée ;
-   - éviter de positionner chaque bouton isolément.
-*/
-
-.task-actions {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 8px;
-    margin-top: 12px;
-}
-
-/*
-   Bouton Modifier.
-
-   Rôle :
-   - lien vers modif_tache.php?id=...
-   - stylisé comme une action discrète ;
-   - placé à gauche du bouton Supprimer.
-*/
-.edit-task-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 42px;
-    height: 42px;
-    border-radius: 6px;
-    text-decoration: none;
-    color: var(--color-button-blue-gray);
-    background-color: transparent;
-    font-size: 1.4rem;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.edit-task-button:hover {
-    transform: scale(1.15);
-}
-
-.edit-task-button:focus-visible {
-    outline: var(--focus-outline);
-}
-
-/* ---------------------------------------------------------------------
-   COULEURS D’ÉTAT DES TÂCHES
-   ---------------------------------------------------------------------
-   Ces classes sont prévues pour une éventuelle représentation visuelle
-   des statuts dans l’interface.
-
-   Statuts :
-   - À planifier : gris foncé
-   - Prévue : bleu
-   - En cours : vert
-   - Dépassée : rouge
-   - Terminée : gris
-*/
-
-.status-to-plan {
-    color: var(--color-to-plan);
-}
-
-.status-planned {
-    color: var(--color-planned);
-}
-
-.status-in-progress {
-    color: var(--color-in-progress);
-}
-
-.status-overdue {
-    color: var(--color-overdue);
-}
-
-.status-completed {
-    color: var(--color-completed);
 }
 
 /* =====================================================================
@@ -496,30 +295,18 @@ textarea {
 }
 
 /* =====================================================================
-   AJOUT — SUPPRESSION DE TÂCHE
+   SUPPRESSION DE TÂCHE
    ===================================================================== */
 
-/*
-   Bouton Supprimer.
-
-   Rôle :
-   - supprimer une tâche après confirmation ;
-   - être affiché dans le conteneur .task-actions ;
-   - ne plus être positionné en absolu, afin de cohabiter proprement
-     avec le bouton Modifier.
-*/
 .delete-task-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 42px;
-    height: 42px;
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
     background: none;
     border: none;
     color: var(--color-button-red);
     font-size: 1.4rem;
     cursor: pointer;
-    padding: 0;
 }
 
 .delete-task-button:hover {
@@ -531,7 +318,7 @@ textarea {
 }
 
 /* =====================================================================
-   AJOUT — POPUP CONFIRMATION "SUPPRIMER ?"
+   POPUP CONFIRMATION
    ===================================================================== */
 
 .confirm-overlay {

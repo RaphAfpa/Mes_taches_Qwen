@@ -123,49 +123,48 @@ include 'includes/header_commun.php';
             - section sémantique
             - labels explicitement associés
         -->
-        <section
-            class="filters"
-            aria-labelledby="filters-title"
-        >
-            <h3 id="filters-title">Filtres et tri</h3>
+<section
+    class="filters"
+    aria-labelledby="filters-title"
+>
+    <h3 id="filters-title">Filtres et tri</h3>
 
-            <div class="grid filter-grid">
+    <div class="filters-grid">
 
-                <div>
-                    <label for="category-filter">Catégorie</label>
-                    <select id="category-filter">
-                        <option value="all">Toutes</option>
-                        <option value="Travail">Travail</option>
-                        <option value="Bricolage">Bricolage</option>
-                        <option value="Loisirs">Loisirs</option>
-                    </select>
-                </div>
+        <div class="filter-item">
+            <label for="category-filter">Catégorie</label>
+            <select id="category-filter">
+                <option value="all">Toutes</option>
+                <option value="Travail">Travail</option>
+                <option value="Bricolage">Bricolage</option>
+                <option value="Loisirs">Loisirs</option>
+            </select>
+        </div>
 
-                <div>
-                    <label for="status-filter">Statut</label>
-                    <select id="status-filter">
-                        <option value="all">Tous</option>
-                        <option value="À planifier">À planifier</option>
-                        <option value="Prévue">Prévue</option>
-                        <option value="En cours">En cours</option>
-                        <option value="Dépassée">Dépassée</option>
-                        <option value="Terminée">Terminée</option>
-                    </select>
-                </div>
+        <div class="filter-item">
+            <label for="status-filter">Statut</label>
+            <select id="status-filter">
+                <option value="all">Tous</option>
+                <option value="À planifier">À planifier</option>
+                <option value="Prévue">Prévue</option>
+                <option value="En cours">En cours</option>
+                <option value="Dépassée">Dépassée</option>
+                <option value="Terminée">Terminée</option>
+            </select>
+        </div>
 
-                <div>
-                    <label for="sort-filter">Trier par</label>
-                    <select id="sort-filter">
-                        <option value="created_at DESC">Création (récent)</option>
-                        <option value="created_at ASC">Création (ancien)</option>
-                        <option value="due_date ASC">Échéance (croissante)</option>
-                        <option value="due_date DESC">Échéance (décroissante)</option>
-                    </select>
-                </div>
+        <div class="filter-item">
+            <label for="sort-filter">Trier par</label>
+            <select id="sort-filter">
+                <option value="created_at DESC">Création (récent)</option>
+                <option value="created_at ASC">Création (ancien)</option>
+                <option value="due_date ASC">Échéance (croissante)</option>
+                <option value="due_date DESC">Échéance (décroissante)</option>
+            </select>
+        </div>
 
-            </div>
-        </section>
-
+    </div>
+</section>
         <!--
             Section LISTE DES TÂCHES
             ⚠️ POINT CLÉ POUR L’ACCORDÉON
