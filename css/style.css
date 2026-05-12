@@ -39,7 +39,7 @@ body {
 }
 
 /* =====================================================================
-   CONTENEURS &amp; LAYOUT
+   CONTENEURS & LAYOUT
    ===================================================================== */
 
 .container {
@@ -656,4 +656,154 @@ button.bleu-gris {
     display: flex;
     justify-content: center;
     gap: 10px;
+}
+
+/* =====================================================================
+   AJOUT — DISPOSITION DU BANDEAU DE TÂCHE ET DES ACTIONS
+   =====================================================================
+
+   Objectif :
+   - conserver la coche de validation sur la même ligne que le titre ;
+   - empêcher le bouton principal de prendre toute la largeur quand il est
+     accompagné d’un second bouton ;
+   - styliser les nouvelles classes dynamiques déjà générées par js/app.js ;
+   - ne supprimer aucune règle existante.
+*/
+
+/*
+   Conteneur horizontal du bandeau de tâche.
+   Les deux noms de classes sont conservés en parallèle pendant la migration.
+*/
+.task-header-row,
+.ligne-entete-tache {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+}
+
+/*
+   Dans un bandeau horizontal, le bouton principal ne doit plus garder
+   width: 100% ; il occupe seulement l’espace disponible.
+*/
+.task-header-row .task-header,
+.task-header-row .tache-entete,
+.ligne-entete-tache .task-header,
+.ligne-entete-tache .tache-entete {
+    width: auto;
+    flex: 1;
+    margin: 0;
+    border-radius: 0;
+}
+
+/*
+   Bouton coche verte.
+   Il reste à droite et ne descend plus sous le titre.
+*/
+.complete-task-button,
+.bouton-terminer {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    padding: 0 14px;
+    background-color: #F9FAFB;
+    color: var(--color-button-green);
+    border-left: 1px solid var(--color-border);
+    border-radius: 0;
+    font-size: 1.4rem;
+    cursor: pointer;
+}
+
+.complete-task-button:hover,
+.bouton-terminer:hover {
+    background-color: #F3F4F6;
+}
+
+.complete-task-button:focus-visible,
+.bouton-terminer:focus-visible {
+    outline: var(--focus-outline);
+}
+
+/*
+   Zone des actions dans l’accordéon déplié.
+   Les boutons restent alignés à droite.
+*/
+.task-actions,
+.actions-tache {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+/*
+   Lien/bouton de modification.
+   Le JS le crée sous forme de lien <a>, donc on le rend visuellement
+   équivalent à un bouton d’action.
+*/
+.edit-task-button,
+.bouton-modifier {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    text-decoration: none;
+    color: var(--color-button-blue-gray);
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+}
+
+.edit-task-button:hover,
+.bouton-modifier:hover {
+    transform: scale(1.15);
+}
+
+.edit-task-button:focus-visible,
+.bouton-modifier:focus-visible {
+    outline: var(--focus-outline);
+}
+
+/* =====================================================================
+   AJOUT — UNIFORMISATION DES ACTIONS DE FORMULAIRE
+   =====================================================================
+
+   Objectif :
+   - donner exactement la même hauteur visuelle aux boutons <button> et
+     aux liens stylés comme boutons dans les formulaires ;
+   - neutraliser l’apparence native du navigateur sur les boutons ;
+   - corriger le décalage visible entre « Valider » et « Annuler » ;
+   - limiter l’impact de la correction aux zones d’actions de formulaire.
+*/
+
+.form-actions > button,
+.form-actions > .button-link,
+.form-actions > .action-link,
+.form-actions > .lien-bouton,
+.form-actions > .lien-action,
+.actions-formulaire > button,
+.actions-formulaire > .button-link,
+.actions-formulaire > .action-link,
+.actions-formulaire > .lien-bouton,
+.actions-formulaire > .lien-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    padding: 0 15px;
+    margin: 0;
+    border: none;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: bold;
+    line-height: 1;
+    text-decoration: none;
+    vertical-align: middle;
+    appearance: none;
+    -webkit-appearance: none;
 }
